@@ -57,6 +57,19 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+
+			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+				<version>9.8.1</version>
+
+				<configuration>
+					<user>root</user>
+					<password>root</password>
+					<url>jdbc:mysql://localhost:3306/cake?useSsL=false&amp;allowPublicKeyRetrieval=true</url>
+					<cleanDisabled>false</cleanDisabled>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 
