@@ -34,7 +34,7 @@
             <property name="useActualColumnNames" value="false"/>
             <generatedKey column="ID" sqlStatement="MySql" identity="true" />
         </table>
-        <table schema="cake" tableName="ROLES" domainObjectName="Roles" >
+        <table schema="cake" tableName="ROLE" domainObjectName="Role" >
             <property name="useActualColumnNames" value="false"/>
             <generatedKey column="ID" sqlStatement="MySql" identity="true" />
         </table>
