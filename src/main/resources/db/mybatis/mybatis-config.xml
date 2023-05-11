@@ -13,6 +13,6 @@
         <mapper resource="db/mybatis/UserMapper.xml"/>
         <mapper resource="db/mybatis/GoodsMapper.xml"/>
         <mapper resource="db/mybatis/GoodsTypesMapper.xml"/>
-        <mapper resource="db/mybatis/RolesMapper.xml"/>
+        <mapper resource="db/mybatis/RoleMapper.xml"/>
     </mappers>
 </configuration>

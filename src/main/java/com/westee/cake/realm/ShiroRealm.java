@@ -1,5 +1,6 @@
-package com.westee.cake.service;
+package com.westee.cake.realm;
 
+import com.westee.cake.service.VerificationCodeCheckService;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
