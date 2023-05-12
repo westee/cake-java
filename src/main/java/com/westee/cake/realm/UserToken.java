@@ -8,13 +8,12 @@ public class UserToken extends UsernamePasswordToken {
     //微信code
     private String code;
 
-    // TODO 由于是demo方法，此处微信只传一个code参数，其他参数根据实际情况添加
-
     public UserToken(LoginType loginType, final String username, final String password) {
         super(username, password);
         this.loginType = loginType;
     }
 
+    // TODO 由于是demo方法，此处微信只传一个code参数，其他参数根据实际情况添加
     public UserToken(LoginType loginType, String username, String password, String code) {
         super(username, password);
         this.loginType = loginType;

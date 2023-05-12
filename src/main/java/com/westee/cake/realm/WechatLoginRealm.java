@@ -3,6 +3,7 @@ package com.westee.cake.realm;
 import com.westee.cake.generate.User;
 import com.westee.cake.service.UserService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
@@ -11,7 +12,6 @@ import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.springframework.beans.factory.annotation.Autowired;
-import java.util.Objects;
 
 @Slf4j
 public class WechatLoginRealm extends AuthorizingRealm {
@@ -44,7 +44,7 @@ public class WechatLoginRealm extends AuthorizingRealm {
 
     /**
      * 认证信息.(身份验证) : Authentication 是用来验证用户身份
-     *
+     * subject.login(token) 时调用
      */
     @Override
     protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken authcToken) throws AuthenticationException {
@@ -52,21 +52,14 @@ public class WechatLoginRealm extends AuthorizingRealm {
         UserToken token = (UserToken) authcToken;
         String code = token.getCode();
 
-        String openid = getOpenid(code);
+        String openid = token.getUsername();
 
-//        if(StringUtils.isEmpty(openid)){
-        if(Objects.isNull(openid)){
+        if(StringUtils.isEmpty(openid)){
             log.debug("微信授权登录失败，未获得openid");
             throw new AuthenticationException();
         }
         User user = userService.getByOpenid(openid);
-        if(user == null){
-            // TODO 获取微信昵称、头像等信息，并完成注册用户，此处省略
-        }
-        // 用户为禁用状态
-//        if(user.getLoginFlag().equals("0")){
-//            throw new DisabledAccountException();
-//        }
+
         // 完成登录，此处已经不需要做密码校验
         SimpleAuthenticationInfo authenticationInfo = new SimpleAuthenticationInfo(
                 user, //用户
@@ -78,8 +71,7 @@ public class WechatLoginRealm extends AuthorizingRealm {
 
     private String getOpenid(String code){
         // 这里假装是一个通过code获取openid的方法，具体实现由各位自己去实现，此处不做扩展
-//        if(StringUtils.isNotEmpty(code)){
-        if(Objects.nonNull(code)){
+        if(StringUtils.isNotEmpty(code)){
             return "sdfuh81238917jhoijiosdsgsdfljiofds";
         }
         return null;

@@ -1,7 +1,8 @@
 package com.westee.cake.controller;
 
-import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.westee.cake.entity.*;
 import com.westee.cake.generate.User;
 import com.westee.cake.realm.LoginType;
@@ -17,11 +18,12 @@ import org.apache.shiro.authc.UnknownAccountException;
 import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.subject.Subject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @RestController
@@ -31,12 +33,9 @@ public class AuthController {
     private final CheckTelService checkTelService;
     private final UserService userService;
 
-    private static final String APPID = "wx9xxxxxxxxxxx9b4";
-
-    private static final String SECRET = "685742***************84xs859";
 
     @Autowired
-    public AuthController(AuthService authService, CheckTelService checkTelService,UserService userService) {
+    public AuthController(AuthService authService, CheckTelService checkTelService, UserService userService) {
         this.checkTelService = checkTelService;
         this.authService = authService;
         this.userService = userService;
@@ -56,14 +55,14 @@ public class AuthController {
     public LoginResult login(@RequestBody UsernameAndPassword usernameAndPassword) {
         UserToken userToken = new UserToken(LoginType.USER_PASSWORD, usernameAndPassword.getUsername(),
                 usernameAndPassword.getPassword());
-        return shiroLogin(userToken);
+        return shiroLogin(userToken, LoginType.USER_PASSWORD);
     }
 
     @PostMapping("/login-wechat")
     public LoginResult login(@RequestBody WXParams usernameAndPassword) {
         UserToken token = new UserToken(LoginType.WECHAT_LOGIN, usernameAndPassword.getCode(),
                 usernameAndPassword.getCode(), usernameAndPassword.getCode());
-        return shiroLogin(token);
+        return shiroLogin(token, LoginType.WECHAT_LOGIN);
     }
 
     @PostMapping("/register-password")
@@ -72,15 +71,15 @@ public class AuthController {
     }
 
     @GetMapping("/send-wxcode")
-    public void sendWXCode(String wxcode) {
-        System.out.println(wxcode);
-
-        RestTemplate restTemplate = new RestTemplate();
-        String resourceURL = "https://api.weixin.qq.com/sns/jscode2session?appid="+APPID+
-                "&secret="+SECRET+"&js_code="+ wxcode +"&grant_type=authorization_code";
-        String resource = restTemplate.getForObject(resourceURL, String.class);
-        System.out.println(resource);
+    public LoginResult sendWXCode(String wxcode) throws JsonProcessingException {
+        WeChatSession session = userService.getWeChatSession(wxcode);
+        String openid = session.getOpenid();
+        UserToken token = new UserToken(LoginType.WECHAT_LOGIN, openid,
+                openid, openid);
+        token.setRememberMe(true);
+        return shiroLogin(token, LoginType.WECHAT_LOGIN);
     }
+
 
     // application/x-www-form-urlencoded
 //    @PostMapping("/send-wxcode")
@@ -106,7 +105,7 @@ public class AuthController {
         }
     }
 
-    public LoginResult shiroLogin(UserToken token) {
+    public LoginResult shiroLogin(UserToken token, LoginType type) {
         try {
             //登录不在该处处理，交由shiro处理
             Subject subject = SecurityUtils.getSubject();
@@ -114,9 +113,13 @@ public class AuthController {
 
             if (subject.isAuthenticated()) {
                 JSONObject json = new JSONObject();
-                ((JSONObject) json).put("token", subject.getSession().getId());
-                User user = new User();
-                User userByName = userService.getUserByName(token.getUsername());
+                json.put("token", subject.getSession().getId());
+                User userByName;
+                if (type == LoginType.WECHAT_LOGIN) {
+                    userByName = userService.getByOpenid(token.getUsername());
+                } else {
+                    userByName = userService.getUserByName(token.getUsername());
+                }
                 return LoginResult.success("登录成功", userByName, true);
             } else {
                 return LoginResult.fail("用户名密码不匹配");
@@ -127,7 +130,7 @@ public class AuthController {
         } catch (LockedAccountException e) {
             return LoginResult.fail("账号被冻结");
         } catch (Exception e) {
-            return LoginResult.fail("系统错误");
+            return LoginResult.fail(e.getMessage());
         }
     }
 }
