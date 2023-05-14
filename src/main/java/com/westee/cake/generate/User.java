@@ -1,5 +1,7 @@
 package com.westee.cake.generate;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.io.Serializable;
 import java.util.Date;
 
@@ -65,6 +67,7 @@ public class User implements Serializable {
      *
      * @mbg.generated Sat May 13 11:18:12 CST 2023
      */
+    @JsonIgnore
     private String wxOpenId;
 
     /**
@@ -74,6 +77,7 @@ public class User implements Serializable {
      *
      * @mbg.generated Sat May 13 11:18:12 CST 2023
      */
+    @JsonIgnore
     private String wxSessionKey;
 
     /**
@@ -101,6 +105,7 @@ public class User implements Serializable {
      *
      * @mbg.generated Sat May 13 11:18:12 CST 2023
      */
+    @JsonIgnore
     private String password;
 
     /**
