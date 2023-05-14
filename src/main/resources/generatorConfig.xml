@@ -49,6 +49,10 @@
         <table schema="cake" tableName="USER_ROLE" domainObjectName="UserRole">
             <property name="useActualColumnNames" value="false"/>
         </table>
+        <table schema="cake" tableName="SHOP" domainObjectName="Shop">
+            <property name="useActualColumnNames" value="false"/>
+            <generatedKey column="ID" sqlStatement="MySql" identity="true" />
+        </table>
 
     </context>
 </generatorConfiguration>
