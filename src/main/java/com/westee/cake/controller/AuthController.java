@@ -2,7 +2,6 @@ package com.westee.cake.controller;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.westee.cake.entity.*;
 import com.westee.cake.generate.User;
 import com.westee.cake.realm.LoginType;
@@ -16,13 +15,11 @@ import org.apache.shiro.authc.IncorrectCredentialsException;
 import org.apache.shiro.authc.LockedAccountException;
 import org.apache.shiro.authc.UnknownAccountException;
 import org.apache.shiro.authc.UsernamePasswordToken;
+import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -98,11 +95,20 @@ public class AuthController {
 
     @GetMapping("/status")
     public LoginResponse getStatus() {
-        if (UserContext.getCurrentUser() != null) {
-            return LoginResponse.alreadyLogin(UserContext.getCurrentUser());
-        } else {
-            return LoginResponse.notLogin();
+        // 获取当前 Subject 对象
+        Subject subject = SecurityUtils.getSubject();
+        // 判断当前用户是否已经登录
+        if (subject.isAuthenticated()) {
+            // 获取当前用户的 principal（身份/凭证）
+            Object principal = subject.getPrincipal();
+            // 判断 principal 是否为 null，如果为 null 则表示当前用户没有登录或者登录已经过期
+            if (principal != null) {
+                // 对 principal 进行类型转换，通常需要根据具体的情况进行转换
+                User user = (User) principal;
+                return LoginResponse.alreadyLogin(user);
+            }
         }
+        return LoginResponse.notLogin();
     }
 
     public LoginResult shiroLogin(UserToken token, LoginType type) {
@@ -120,6 +126,8 @@ public class AuthController {
                 } else {
                     userByName = userService.getUserByName(token.getUsername());
                 }
+                Session session = subject.getSession();
+                session.setAttribute("user", userByName);
                 return LoginResult.success("登录成功", userByName, true);
             } else {
                 return LoginResult.fail("用户名密码不匹配");
