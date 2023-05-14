@@ -14,5 +14,6 @@
         <mapper resource="db/mybatis/GoodsMapper.xml"/>
         <mapper resource="db/mybatis/GoodsTypesMapper.xml"/>
         <mapper resource="db/mybatis/RoleMapper.xml"/>
+        <mapper resource="db/mybatis/ShopMapper.xml"/>
     </mappers>
 </configuration>
