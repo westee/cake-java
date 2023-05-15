@@ -8,13 +8,9 @@ import com.westee.cake.realm.LoginType;
 import com.westee.cake.realm.UserToken;
 import com.westee.cake.service.AuthService;
 import com.westee.cake.service.CheckTelService;
-import com.westee.cake.service.UserContext;
 import com.westee.cake.service.UserService;
 import org.apache.shiro.SecurityUtils;
-import org.apache.shiro.authc.IncorrectCredentialsException;
-import org.apache.shiro.authc.LockedAccountException;
-import org.apache.shiro.authc.UnknownAccountException;
-import org.apache.shiro.authc.UsernamePasswordToken;
+import org.apache.shiro.authc.*;
 import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -137,7 +133,9 @@ public class AuthController {
             return LoginResult.fail("用户名密码不匹配");
         } catch (LockedAccountException e) {
             return LoginResult.fail("账号被冻结");
-        } catch (Exception e) {
+        } catch (AuthenticationException e) {
+            return LoginResult.fail("用户名或密码不正确");
+        }catch (Exception e) {
             return LoginResult.fail(e.getMessage());
         }
     }

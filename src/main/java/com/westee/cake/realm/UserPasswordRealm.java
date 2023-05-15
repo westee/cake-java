@@ -1,8 +1,6 @@
 package com.westee.cake.realm;
 
 import com.westee.cake.generate.User;
-import com.westee.cake.realm.LoginType;
-import com.westee.cake.realm.UserToken;
 import com.westee.cake.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.authc.*;

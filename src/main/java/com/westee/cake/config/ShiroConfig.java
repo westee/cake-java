@@ -1,10 +1,10 @@
 package com.westee.cake.config;
 
+import com.westee.cake.realm.MyModularRealmAuthenticator;
+import com.westee.cake.realm.UserPasswordRealm;
+import com.westee.cake.realm.WechatLoginRealm;
 import com.westee.cake.realm.AuthorizationRealm;
 import com.westee.cake.realm.LoginType;
-import com.westee.cake.realm.MyModularRealmAuthenticator;
-import com.westee.cake.realm.WechatLoginRealm;
-import com.westee.cake.realm.UserPasswordRealm;
 import com.westee.cake.service.UserService;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationInfo;
@@ -24,12 +24,17 @@ import org.apache.shiro.web.servlet.SimpleCookie;
 import org.apache.shiro.web.session.mgt.DefaultWebSessionManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import javax.servlet.Filter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 @Configuration
-public class ShiroConfig {
+public class ShiroConfig implements WebMvcConfigurer {
     @Bean
     public ShiroFilterFactoryBean shiroFilterFactoryBean(SecurityManager securityManager, ShiroLoginFilter shiroLoginFilter) {
         ShiroFilterFactoryBean shiroFilterFactoryBean = new ShiroFilterFactoryBean();
