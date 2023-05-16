@@ -1,14 +1,18 @@
 package com.westee.cake.service;
 
+import com.github.pagehelper.PageHelper;
 import com.westee.cake.entity.GoodsStatus;
+import com.westee.cake.entity.PageResponse;
 import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.Shop;
+import com.westee.cake.generate.ShopExample;
 import com.westee.cake.generate.ShopMapper;
 import com.westee.cake.generate.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -20,14 +24,16 @@ public class ShopService {
         this.shopMapper = mapper;
     }
 
-//    public PageResponse<Shop> getShopsByUserId(Long userId, Integer pageNum, Integer pageSize) {
-//        ShopExample shopExample = new ShopExample();
-//        shopExample.createCriteria().andOwnerUserIdEqualTo(userId).andStatusEqualTo(GoodsStatus.OK.getName());
-//        long count = shopMapper.countByExample(shopExample);
-//        PageHelper.startPage(pageNum, pageSize);
-//        List<Shop> shops = shopMapper.selectByExample(shopExample);
-//        return PageResponse.pageData(pageNum, pageSize, count, shops);
-//    }
+    public PageResponse<Shop> getShopsByUserId(Integer pageNum, Integer pageSize) {
+        User sessionUser = UserService.getSessionUser();
+        Long userId = sessionUser.getId();
+        ShopExample shopExample = new ShopExample();
+        shopExample.createCriteria().andOwnerUserIdEqualTo(userId).andStatusEqualTo(GoodsStatus.OK.getName());
+        long count = shopMapper.countByExample(shopExample);
+        PageHelper.startPage(pageNum, pageSize);
+        List<Shop> shops = shopMapper.selectByExample(shopExample);
+        return PageResponse.pageData(pageNum, pageSize, count, shops);
+    }
 
     public Shop createShop(Shop shop) {
         User sessionUser = UserService.getSessionUser();
@@ -42,7 +48,10 @@ public class ShopService {
         return shop;
     }
 
-    public Shop updateShop(Shop shop, Long userId) {
+    public Shop updateShop(Shop shop) {
+        User sessionUser = UserService.getSessionUser();
+        Long userId = sessionUser.getId();
+
         Shop shopResult = shopMapper.selectByPrimaryKey(shop.getId());
         if (Objects.equals(shopResult, null)) {
             throw HttpException.forbidden("参数不合法");
@@ -58,7 +67,10 @@ public class ShopService {
         }
     }
 
-    public Shop deleteShop(Long shopId, Long userId) {
+    public Shop deleteShop(Long shopId) {
+        User sessionUser = UserService.getSessionUser();
+        Long userId = sessionUser.getId();
+
         Shop shop = shopMapper.selectByPrimaryKey(shopId);
         if (Objects.equals(shop, null)) {
             throw HttpException.forbidden("参数不合法");
