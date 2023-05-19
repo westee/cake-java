@@ -1,9 +1,9 @@
 package com.westee.cake.controller;
 
-import com.alibaba.fastjson2.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.westee.cake.entity.*;
 import com.westee.cake.generate.User;
+import com.westee.cake.realm.JWTUtil;
 import com.westee.cake.realm.LoginType;
 import com.westee.cake.realm.UserToken;
 import com.westee.cake.service.AuthService;
@@ -89,6 +89,12 @@ public class AuthController {
         }
     }
 
+    @GetMapping("/token")
+    public LoginResult testToken() {
+        UserToken userToken = new UserToken(LoginType.USER_PHONE, "111111", "111111");
+        return shiroLogin(userToken, LoginType.USER_PHONE);
+    }
+
     @GetMapping("/status")
     public LoginResponse getStatus() {
         // 获取当前 Subject 对象
@@ -114,8 +120,7 @@ public class AuthController {
             subject.login(token);
 
             if (subject.isAuthenticated()) {
-                JSONObject json = new JSONObject();
-                json.put("token", subject.getSession().getId());
+                String jwtToken = JWTUtil.sign(token.getUsername()); //使用JWTRealm生成token
                 User userByName;
                 if (type == LoginType.WECHAT_LOGIN) {
                     userByName = userService.getByOpenid(token.getUsername());
@@ -124,7 +129,7 @@ public class AuthController {
                 }
                 Session session = subject.getSession();
                 session.setAttribute("user", userByName);
-                return LoginResult.success("登录成功", userByName, true);
+                return LoginResult.success("登录成功", userByName, false, jwtToken);
             } else {
                 return LoginResult.fail("用户名密码不匹配");
             }
@@ -134,7 +139,8 @@ public class AuthController {
         } catch (LockedAccountException e) {
             return LoginResult.fail("账号被冻结");
         } catch (AuthenticationException e) {
-            return LoginResult.fail("用户名或密码不正确");
+            return LoginResult.fail(e.getMessage());
+//            return LoginResult.fail("用户名或密码不正确");
         }catch (Exception e) {
             return LoginResult.fail(e.getMessage());
         }

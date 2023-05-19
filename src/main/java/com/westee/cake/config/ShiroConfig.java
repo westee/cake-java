@@ -1,10 +1,6 @@
 package com.westee.cake.config;
 
-import com.westee.cake.realm.MyModularRealmAuthenticator;
-import com.westee.cake.realm.UserPasswordRealm;
-import com.westee.cake.realm.WechatLoginRealm;
-import com.westee.cake.realm.AuthorizationRealm;
-import com.westee.cake.realm.LoginType;
+import com.westee.cake.realm.*;
 import com.westee.cake.service.UserService;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationInfo;
@@ -48,11 +44,13 @@ public class ShiroConfig implements WebMvcConfigurer {
         pattern.put("/api/v1/**", "anon");
         pattern.put("/api/v1/status", "anon");
         pattern.put("/api/v1/logout", "anon");
-        pattern.put("/api/v1/testRpc", "anon");
-//        pattern.put("/**", "authc");
+
+        // 请求/api/v1/token时使用jwt即JWTAuthFilter进行过滤
+        pattern.put("/api/v1/token", "jwt");
 
         Map<String, Filter> filtersMap = new LinkedHashMap<>();
         filtersMap.put("shiroLoginFilter", shiroLoginFilter);
+        filtersMap.put("jwt", new JWTAuthFilter());
         shiroFilterFactoryBean.setFilters(filtersMap);
 
         shiroFilterFactoryBean.setFilterChainDefinitionMap(pattern);
@@ -71,6 +69,7 @@ public class ShiroConfig implements WebMvcConfigurer {
         realms.add(userPasswordRealm());
         // 微信登录realm
         realms.add(wechatLoginRealm());
+        realms.add(jwtRealm());
         securityManager.setRealms(realms);
 
         securityManager.setCacheManager(new MemoryConstrainedCacheManager());
@@ -133,6 +132,19 @@ public class ShiroConfig implements WebMvcConfigurer {
         // 自定义的密码校验器
         userPasswordRealm.setCredentialsMatcher(credentialsMatcher());
         return userPasswordRealm;
+    }
+
+    /**
+     * 測試
+     * @return
+     */
+    @Bean
+    public JWTRealm jwtRealm() {
+        JWTRealm jwtRealm = new JWTRealm();
+        jwtRealm.setName(LoginType.USER_PHONE.getType());
+        // 自定义的密码校验器
+        jwtRealm.setCredentialsMatcher(new JWTCredentialsMatcher());
+        return jwtRealm;
     }
 
     /**
