@@ -3,7 +3,12 @@ package com.westee.cake.realm;
 import com.westee.cake.generate.User;
 import com.westee.cake.service.UserService;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.shiro.authc.*;
+import org.apache.shiro.authc.AuthenticationException;
+import org.apache.shiro.authc.AuthenticationInfo;
+import org.apache.shiro.authc.AuthenticationToken;
+import org.apache.shiro.authc.SimpleAuthenticationInfo;
+import org.apache.shiro.authc.UnknownAccountException;
+import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
@@ -16,7 +21,7 @@ public class UserPasswordRealm extends AuthorizingRealm {
 
     @Override
     public String getName() {
-        return super.getName();
+        return LoginType.USER_PASSWORD.getType();
     }
 
     @Override

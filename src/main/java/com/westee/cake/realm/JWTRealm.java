@@ -3,7 +3,12 @@ package com.westee.cake.realm;
 import com.westee.cake.generate.User;
 import com.westee.cake.service.UserService;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.shiro.authc.*;
+import org.apache.shiro.authc.AuthenticationException;
+import org.apache.shiro.authc.AuthenticationInfo;
+import org.apache.shiro.authc.AuthenticationToken;
+import org.apache.shiro.authc.SimpleAuthenticationInfo;
+import org.apache.shiro.authc.UnknownAccountException;
+import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.authz.SimpleAuthorizationInfo;
 import org.apache.shiro.realm.AuthorizingRealm;
@@ -17,13 +22,13 @@ public class JWTRealm extends AuthorizingRealm {
 
     @Override
     public String getName() {
-        return super.getName();
+        return LoginType.USER_PHONE.getType();
     }
 
     @Override
     public boolean supports(AuthenticationToken token) {
         if (token instanceof UserToken) {
-            return ((UserToken) token).getLoginType() == LoginType.USER_PASSWORD;
+            return ((UserToken) token).getLoginType() == LoginType.USER_PHONE;
         } else {
             return false;
         }
@@ -41,26 +46,13 @@ public class JWTRealm extends AuthorizingRealm {
 
     @Override
     protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken auth) throws AuthenticationException {
-//        log.info("---------------- 用户 jwt ----------------------");
-//        String token = (String) auth.getCredentials();
-//        String username = JWTUtil.getUsername(token);
-//        User user = userService.getUserByName(username);
-//        //查询数据库，获取用户密码
-//        String password = user.getPassword();
-//        if (username == null || !password.equals(token)) {
-//            throw new AuthenticationException("token无效");
-//        }
-//        return new SimpleAuthenticationInfo(token, token, "JWTRealm");
         log.info("---------------- 用户 jwt ----------------------");
         UsernamePasswordToken token = (UsernamePasswordToken) auth;
         String name = token.getUsername();
+        System.out.println(name);
         // 从数据库获取对应用户名密码的用户
         User user = userService.getUserByName(name);
         if (user != null) {
-            // 用户为禁用状态
-//            if (!user.getLoginFlag().equals("1")) {
-//                throw new DisabledAccountException();
-//            }
             SimpleAuthenticationInfo authenticationInfo = new SimpleAuthenticationInfo(
                     user, //用户
                     user.getPassword(), //密码

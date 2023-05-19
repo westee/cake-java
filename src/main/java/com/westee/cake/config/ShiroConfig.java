@@ -1,10 +1,15 @@
 package com.westee.cake.config;
 
-import com.westee.cake.realm.*;
+import com.westee.cake.realm.AuthorizationRealm;
+import com.westee.cake.realm.JWTAuthFilter;
+import com.westee.cake.realm.JWTCredentialsMatcher;
+import com.westee.cake.realm.JWTRealm;
+import com.westee.cake.realm.LoginType;
+import com.westee.cake.realm.MyModularRealmAuthenticator;
+import com.westee.cake.realm.UserPasswordRealm;
+import com.westee.cake.realm.WechatLoginRealm;
 import com.westee.cake.service.UserService;
 import org.apache.shiro.SecurityUtils;
-import org.apache.shiro.authc.AuthenticationInfo;
-import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.credential.CredentialsMatcher;
 import org.apache.shiro.authc.pam.AtLeastOneSuccessfulStrategy;
 import org.apache.shiro.cache.MemoryConstrainedCacheManager;
@@ -24,10 +29,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import javax.servlet.Filter;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Configuration
 public class ShiroConfig implements WebMvcConfigurer {
@@ -41,12 +46,11 @@ public class ShiroConfig implements WebMvcConfigurer {
         pattern.put("/api/v1/login", "anon");
         pattern.put("/api/v1/login**", "anon");
         pattern.put("/api/v1/register**", "anon");
-        pattern.put("/api/v1/**", "anon");
         pattern.put("/api/v1/status", "anon");
         pattern.put("/api/v1/logout", "anon");
 
-        // 请求/api/v1/token时使用jwt即JWTAuthFilter进行过滤
         pattern.put("/api/v1/token", "jwt");
+        pattern.put("/api/v1/test", "jwt");
 
         Map<String, Filter> filtersMap = new LinkedHashMap<>();
         filtersMap.put("shiroLoginFilter", shiroLoginFilter);
@@ -134,10 +138,6 @@ public class ShiroConfig implements WebMvcConfigurer {
         return userPasswordRealm;
     }
 
-    /**
-     * 測試
-     * @return
-     */
     @Bean
     public JWTRealm jwtRealm() {
         JWTRealm jwtRealm = new JWTRealm();
@@ -157,14 +157,11 @@ public class ShiroConfig implements WebMvcConfigurer {
      */
     @Bean
     public CredentialsMatcher credentialsMatcher() {
-        return new CredentialsMatcher() {
-            @Override
-            public boolean doCredentialsMatch(AuthenticationToken authenticationToken, AuthenticationInfo authenticationInfo) {
-                String submittedPassword = new String((char[])authenticationToken.getCredentials());
-                String encryptedPassword = new Sha256Hash(submittedPassword, UserService.salt).toString();
-                String storedPassword = (String)authenticationInfo.getCredentials();
-                return encryptedPassword.equals(storedPassword);
-            }
+        return (authenticationToken, authenticationInfo) -> {
+            String submittedPassword = new String((char[])authenticationToken.getCredentials());
+            String encryptedPassword = new Sha256Hash(submittedPassword, UserService.salt).toString();
+            String storedPassword = (String)authenticationInfo.getCredentials();
+            return encryptedPassword.equals(storedPassword);
         };
     }
 }

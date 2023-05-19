@@ -1,23 +1,26 @@
 package com.westee.cake.realm;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.westee.cake.entity.Response;
+import com.westee.cake.exceptions.HttpException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.SecurityUtils;
-import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.web.filter.authc.AuthenticatingFilter;
 
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 public class JWTAuthFilter extends AuthenticatingFilter {
 
     @Override
-    protected AuthenticationToken createToken(ServletRequest request, ServletResponse response) throws Exception {
+    protected AuthenticationToken createToken(ServletRequest request, ServletResponse response) {
         //从请求头中获取token
         String token = getRequestToken((HttpServletRequest) request);
         if (StringUtils.isEmpty(token)) {
-            throw new AuthenticationException("token不能为空");
+            throw HttpException.notAuthorized("token不能为空"); //AuthenticationException("");
         }
         return new JWTToken(token);
     }
@@ -25,8 +28,18 @@ public class JWTAuthFilter extends AuthenticatingFilter {
     @Override
     protected boolean onAccessDenied(ServletRequest request, ServletResponse response) throws Exception {
         //进行token校验
-        JWTToken jwtToken = (JWTToken) this.createToken(request, response);
-        SecurityUtils.getSubject().login(jwtToken);
+        try {
+            JWTToken jwtToken = (JWTToken) this.createToken(request, response);
+            SecurityUtils.getSubject().login(jwtToken);
+        } catch (Exception e) {
+            HttpServletResponse res = (HttpServletResponse) response;
+            ObjectMapper objectMapper = new ObjectMapper();
+            response.setContentType("application/json;charset=UTF-8");
+            String responseBody = objectMapper.writeValueAsString(Response.of("用户未授权", null));
+            res.getWriter().write(responseBody);
+            res.setStatus(401);
+            return false;
+        }
         return true;
     }
 

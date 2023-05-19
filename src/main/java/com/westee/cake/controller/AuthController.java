@@ -1,7 +1,12 @@
 package com.westee.cake.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.westee.cake.entity.*;
+import com.westee.cake.entity.LoginResponse;
+import com.westee.cake.entity.LoginResult;
+import com.westee.cake.entity.TelAndCode;
+import com.westee.cake.entity.UsernameAndPassword;
+import com.westee.cake.entity.WXParams;
+import com.westee.cake.entity.WeChatSession;
 import com.westee.cake.generate.User;
 import com.westee.cake.realm.JWTUtil;
 import com.westee.cake.realm.LoginType;
@@ -10,7 +15,11 @@ import com.westee.cake.service.AuthService;
 import com.westee.cake.service.CheckTelService;
 import com.westee.cake.service.UserService;
 import org.apache.shiro.SecurityUtils;
-import org.apache.shiro.authc.*;
+import org.apache.shiro.authc.AuthenticationException;
+import org.apache.shiro.authc.IncorrectCredentialsException;
+import org.apache.shiro.authc.LockedAccountException;
+import org.apache.shiro.authc.UnknownAccountException;
+import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -95,6 +104,11 @@ public class AuthController {
         return shiroLogin(userToken, LoginType.USER_PHONE);
     }
 
+    @GetMapping("/test")
+    public String test() {
+        return "123";
+    }
+
     @GetMapping("/status")
     public LoginResponse getStatus() {
         // 获取当前 Subject 对象
@@ -139,8 +153,7 @@ public class AuthController {
         } catch (LockedAccountException e) {
             return LoginResult.fail("账号被冻结");
         } catch (AuthenticationException e) {
-            return LoginResult.fail(e.getMessage());
-//            return LoginResult.fail("用户名或密码不正确");
+            return LoginResult.fail("用户名或密码不正确");
         }catch (Exception e) {
             return LoginResult.fail(e.getMessage());
         }

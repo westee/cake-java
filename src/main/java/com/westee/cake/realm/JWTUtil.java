@@ -11,16 +11,16 @@ import java.util.Date;
 /**
  * 在这个实现中，我们使用了 Auth0 开发的 Java JWT 库，它提供了生成和验证 JWT 的方法。
  * sign 方法使用 HMAC-SHA256 算法将用户名和密钥结合生成一个 token，verify 方法在验证 token 时需要使用相同的密钥。
- *
+ * <p>
  * getUsername 方法获取 JWT 中的用户名，它首先使用 JWT.decode 方法将 token 解码，然后调用 getSubject 方法获取用户名。
- *
+ * <p>
  * 需要注意的是，这个实现是一个简单的示例，不包含其他各种选项和错误处理。在实际应用中，需要根据具体需求进行调整和完善。
  */
 
 public class JWTUtil {
     private static final long EXPIRATION_TIME = 60 * 60 * 1000; // 1 hour
     private static final String ISSUER = "my_issuer"; // JWT签发者
-    private static final String  secret = "my_secret"; //JWT密钥
+    private static final String secret = "my_secret"; //JWT密钥
 
     public static String sign(String username) {
         Algorithm algorithm = Algorithm.HMAC256(secret);
