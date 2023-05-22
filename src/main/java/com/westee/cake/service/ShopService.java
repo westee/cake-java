@@ -30,9 +30,10 @@ public class ShopService {
         ShopExample shopExample = new ShopExample();
         shopExample.createCriteria().andOwnerUserIdEqualTo(userId).andStatusEqualTo(GoodsStatus.OK.getName());
         long count = shopMapper.countByExample(shopExample);
+        long totalPage = count % pageSize == 0 ? count % pageSize : count % pageSize + 1;
         PageHelper.startPage(pageNum, pageSize);
         List<Shop> shops = shopMapper.selectByExample(shopExample);
-        return PageResponse.pageData(pageNum, pageSize, count, shops);
+        return PageResponse.pageData(pageNum, pageSize, totalPage, shops);
     }
 
     public Shop createShop(Shop shop) {
