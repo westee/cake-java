@@ -20,6 +20,7 @@
         <javaModelGenerator targetPackage="com.westee.cake.generate" targetProject="src/main/java">
             <property name="enableSubPackages" value="true" />
             <property name="trimStrings" value="true" />
+            <property name="constructorBased" value="true" />
         </javaModelGenerator>
 
         <sqlMapGenerator targetPackage="db.mybatis"  targetProject="src/main/resources">
