@@ -46,9 +46,10 @@ public class JWTAuthFilter extends AuthenticatingFilter {
     //从请求头中获取token
     private String getRequestToken(HttpServletRequest request) {
         //从Header中获取token
-        String token = request.getHeader("Authorization");
-        if (StringUtils.isNotEmpty(token) && token.startsWith("Bearer ")) {
-            token = token.substring(7);
+        String token = request.getHeader("Token");
+//        String token = request.getHeader("Authorization");
+        if (StringUtils.isNotEmpty(token)) {
+//            token = token.substring(7);
         }
         return token;
     }
