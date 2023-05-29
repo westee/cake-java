@@ -9,6 +9,8 @@ import com.westee.cake.service.GoodsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("api/v1/")
 public class GoodsController {
@@ -21,10 +23,18 @@ public class GoodsController {
 
     @GetMapping("/goods")
     public PageResponse<GoodsWithImages> getShop(@RequestParam(name = "pageNum", defaultValue = "1", required = false) Integer pageNum,
-                                       @RequestParam(name = "pageSize", defaultValue = "10", required = false) Integer pageSize,
-                                       @RequestParam(name = "shopId") Long shopId) {
+                                                 @RequestParam(name = "pageSize", defaultValue = "10", required = false) Integer pageSize,
+                                                 @RequestParam(name = "shopId") Long shopId) {
 
         return goodsService.getGoodsByShopId(pageNum, pageSize, shopId);
+    }
+
+    @GetMapping("/goods-category")
+    public Response<List<GoodsWithImages>> getGoodsByCategoryAndShop(
+            @RequestParam(name = "shopId") Long shopId,
+            @RequestParam(name = "categoryId") Long categoryId) {
+
+        return Response.of(ResponseMessage.OK.toString() ,goodsService.getGoodsByShopId(shopId, categoryId)) ;
     }
 
     @GetMapping("/goods/{goodsId}")

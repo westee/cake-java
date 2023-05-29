@@ -51,6 +51,17 @@ public class GoodsService {
         }
     }
 
+    public List<GoodsWithImages> getGoodsByShopId( Long shopId, Long categoryId) {
+        Shop shop = shopMapper.selectByPrimaryKey(shopId);
+        if (shop != null) {
+            GoodsExample goodsExample = new GoodsExample();
+            goodsExample.createCriteria().andCategoryIdEqualTo(categoryId).andStatusEqualTo(GoodsStatus.OK.getName());
+            return myGoodsWithImageMapper.getGoodsListWithImageByShopIdAndCategory(shopId, categoryId);
+        } else {
+            throw HttpException.forbidden("没有权限");
+        }
+    }
+
     public Goods getGoodsByGoodsId(long goodsId) {
         return myGoodsWithImageMapper.getGoodsWithImage(goodsId);
 //        return goodsMapper.selectByPrimaryKey(goodsId);
