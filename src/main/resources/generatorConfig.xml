@@ -62,6 +62,14 @@
             <property name="useActualColumnNames" value="false"/>
             <generatedKey column="ID" sqlStatement="MySql" identity="true" />
         </table>
+        <table schema="cake" tableName="ORDER_TABLE" domainObjectName="OrderTable">
+            <property name="useActualColumnNames" value="false"/>
+            <generatedKey column="ID" sqlStatement="MySql" identity="true" />
+        </table>
+        <table schema="cake" tableName="ORDER_GOODS" domainObjectName="OrderGoods">
+            <property name="useActualColumnNames" value="false"/>
+            <generatedKey column="ID" sqlStatement="MySql" identity="true" />
+        </table>
 
     </context>
 </generatorConfiguration>
