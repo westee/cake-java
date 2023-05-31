@@ -18,7 +18,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class GoodsService {
@@ -112,6 +114,14 @@ public class GoodsService {
         goodsMapper.updateByPrimaryKeySelective(goods);
         return goods;
     }
+
+    public Map<Long, Goods> getGoodsToMapByGoodsIds(List<Long> goodsIds) {
+        GoodsExample example = new GoodsExample();
+        example.createCriteria().andIdIn(goodsIds);
+        Map<Long, Goods> collect = goodsMapper.selectByExample(example).stream().collect(Collectors.toMap(Goods::getId, x -> x));
+        return collect;
+    }
+
 
     public void checkGoodsBelongToUser(Goods goods) {
         // 根据goods的shop查询当前用户是不是店铺的拥有者

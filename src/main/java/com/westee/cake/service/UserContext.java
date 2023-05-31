@@ -6,6 +6,9 @@ public class UserContext {
     private static final ThreadLocal<User> currentUser = new ThreadLocal<>();
 
     public static User getCurrentUser() {
+        User user = new User();
+        user.setId(1L);
+        setCurrentUser(user);
         return currentUser.get();
     }
 
