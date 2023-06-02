@@ -118,4 +118,9 @@ public class UserService {
         }
        throw HttpException.notAuthorized("未登录");
     }
+
+    public User updateUser(User user) {
+        userMapper.updateByPrimaryKeySelective(user);
+        return user;
+    }
 }
