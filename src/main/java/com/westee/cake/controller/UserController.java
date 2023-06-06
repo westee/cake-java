@@ -28,10 +28,10 @@ public class UserController {
     }
 
     @PatchMapping("user")
-    public Response<User> updateUser(@RequestBody User user) {
-        User sessionUser = UserService.getSessionUser();
-        Long id = sessionUser.getId();
-        if (Objects.equals(user.getId(), null) || !Objects.equals(id, user.getId())) {
+    public Response<User> updateUser(@RequestBody User user, @RequestHeader("Token") String token ) {
+        String openid = JWTUtil.getUsername(token);
+        User byOpenid = userService.getByOpenid(openid);
+        if (Objects.equals(user.getId(), null) || !Objects.equals(byOpenid.getId(), user.getId())) {
             throw HttpException.forbidden("没有权限");
         }
         return Response.of(ResponseMessage.OK.toString(), userService.updateUser(user)) ;
