@@ -26,6 +26,9 @@
             <result property="shopId" column="SHOP_ID"/>
             <result property="createdAt" column="GOODS_CREATED_AT"/>
             <result property="updatedAt" column="GOODS_UPDATED_AT"/>
+            <collection property="images" ofType="java.lang.String" javaType="java.util.List">
+                <result column="images" jdbcType="VARCHAR" property=""/>
+            </collection>
         </collection>
     </resultMap>
 
@@ -47,16 +50,18 @@
                GOODS.PRICE          as GOODS_PRICE,
                GOODS.CREATED_AT     as GOODS_CREATED_AT,
                GOODS.UPDATED_AT     as GOODS_UPDATED_AT,
-               SHOPPING_CART.NUMBER as GOODS_NUMBER
-        from (select distinct SHOP_ID
+               SHOPPING_CART.NUMBER as GOODS_NUMBER,
+               GOODS_IMAGE.URL      as IMAGES
+        from (select distinct SHOP_ID, USER_ID, GOODS_ID
               from SHOPPING_CART
               where USER_ID = #{userId}
                 and STATUS = 'ok'
                   limit #{offset}
                   , #{limit}) t1
-                 join SHOPPING_CART on t1.SHOP_ID = SHOPPING_CART.SHOP_ID
+                 join SHOPPING_CART on t1.USER_ID = SHOPPING_CART.USER_ID
                  join GOODS on SHOPPING_CART.GOODS_ID = GOODS.ID
                  join SHOP on t1.SHOP_ID = SHOP.ID
+                 left join GOODS_IMAGE on DELETED = 0 and OWNER_GOODS_ID = t1.GOODS_ID
         where SHOPPING_CART.STATUS = 'ok'
     </select>
 

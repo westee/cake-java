@@ -9,6 +9,7 @@ import com.westee.cake.entity.ShoppingCartData;
 import com.westee.cake.entity.ShoppingCartGoods;
 import com.westee.cake.generate.Goods;
 import com.westee.cake.generate.ShoppingCart;
+import com.westee.cake.generate.ShoppingCartExample;
 import com.westee.cake.generate.ShoppingCartMapper;
 import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
@@ -27,11 +28,14 @@ public class ShoppingCartService {
     private final ShoppingCartQueryMapper shoppingCartQueryMapper;
     private final GoodsService goodsService;
     private final SqlSessionFactory sqlSessionFactory;
+    private final ShoppingCartMapper shoppingCartMapper;
 
     public ShoppingCartService(ShoppingCartQueryMapper shoppingCartQueryMapper,
-                               GoodsService goodsService, SqlSessionFactory sqlSessionFactory) {
+                               GoodsService goodsService, SqlSessionFactory sqlSessionFactory,
+                               ShoppingCartMapper shoppingCartMapper) {
         this.goodsService = goodsService;
         this.sqlSessionFactory = sqlSessionFactory;
+        this.shoppingCartMapper = shoppingCartMapper;
         this.shoppingCartQueryMapper = shoppingCartQueryMapper;
     }
 
@@ -100,12 +104,33 @@ public class ShoppingCartService {
 
         Map<Long, Goods> goodsToMapByGoodsIds = goodsService.getGoodsToMapByGoodsIds(goodsIds);
 
-        List<ShoppingCart> collect = request.getGoods().stream().map(item -> makeShoppingCartRow(item, goodsToMapByGoodsIds)).collect(Collectors.toList());
+        List<ShoppingCart> rowsToUpdate = new ArrayList<>();
+        List<ShoppingCart> rowsToInsert = new ArrayList<>();
 
+        for (AddToShoppingCartItem item : request.getGoods()) {
+            ShoppingCart cart = makeShoppingCartRow(item, goodsToMapByGoodsIds);
+            ShoppingCartExample shoppingCartExample = new ShoppingCartExample();
+            shoppingCartExample.createCriteria().andUserIdEqualTo(userId).andGoodsIdEqualTo(cart.getGoodsId())
+                    .andStatusEqualTo(GoodsStatus.OK.getName());
+            // 查找数据库中是否有要插入的商品
+            ShoppingCart existingRow = shoppingCartMapper.selectByExample(shoppingCartExample).get(0);
 
+            if (existingRow == null) {
+                rowsToInsert.add(cart);
+            } else {
+                existingRow.setNumber(existingRow.getNumber() + cart.getNumber());
+                rowsToUpdate.add(existingRow);
+            }
+        }
         try (SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
             ShoppingCartMapper mapper = sqlSession.getMapper(ShoppingCartMapper.class);
-            collect.forEach(mapper::insert);
+
+            // 批量更新
+            rowsToUpdate.forEach(mapper::updateByPrimaryKey);
+
+            // 批量插入
+            rowsToInsert.forEach(mapper::insert);
+
             sqlSession.commit();
         }
 
@@ -132,4 +157,14 @@ public class ShoppingCartService {
         return shoppingCart;
     }
 
+    public int countByGoodsIdAndUserId(long goodsId, Long userId) {
+        ShoppingCartExample shoppingCartExample = new ShoppingCartExample();
+        shoppingCartExample.createCriteria().andGoodsIdEqualTo(goodsId).andUserIdEqualTo(userId);
+        List<ShoppingCart> shoppingCarts = shoppingCartMapper.selectByExample(shoppingCartExample);
+        if(shoppingCarts.size() == 0) {
+            return 0;
+        } else {
+            return shoppingCarts.get(0).getNumber();
+        }
+    }
 }
