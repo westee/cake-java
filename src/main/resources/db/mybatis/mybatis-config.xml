@@ -17,11 +17,13 @@
         <mapper resource="db/mybatis/RoleMapper.xml"/>
         <mapper resource="db/mybatis/ShopMapper.xml"/>
         <mapper resource="db/mybatis/GoodsImageMapper.xml"/>
-        <mapper resource="db/mybatis/MyGoodsWithImageMapper.xml"/>
         <mapper resource="db/mybatis/ShoppingCartMapper.xml"/>
-        <mapper resource="db/mybatis/ShoppingCartQuery.xml"/>
         <mapper resource="db/mybatis/OrderGoodsMapper.xml"/>
         <mapper resource="db/mybatis/OrderTableMapper.xml"/>
         <mapper resource="db/mybatis/AddressMapper.xml"/>
+
+        <mapper resource="db/mybatis/MyGoodsWithImageMapper.xml"/>
+        <mapper resource="db/mybatis/ShoppingCartQuery.xml"/>
+        <mapper resource="db/mybatis/MyOrderMapper.xml"/>
     </mappers>
 </configuration>
