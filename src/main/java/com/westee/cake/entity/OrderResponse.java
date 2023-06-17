@@ -17,13 +17,13 @@ public class OrderResponse extends OrderTable {
         this.setId(order.getId());
         this.setUserId(order.getUserId());
         this.setTotalPrice(order.getTotalPrice());
-        this.setAddress(order.getAddress());
+        this.setAddressId(order.getAddressId());
         this.setExpressCompany(order.getExpressCompany());
         this.setExpressId(order.getExpressId());
         this.setStatus(order.getStatus());
         this.setCreatedAt(order.getCreatedAt());
         this.setUpdatedAt(order.getUpdatedAt());
-//        this.setShopId(order.get getShopId());
+        this.setShopId(order.getShopId());
     }
 
     public Shop getShop() {

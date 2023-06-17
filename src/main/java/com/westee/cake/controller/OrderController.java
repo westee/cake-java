@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1")
 public class OrderController {
-    private OrderService orderService;
+    private final OrderService orderService;
     private final UserService userService;
     @Autowired
     public OrderController(OrderService orderService, UserService userService) {
@@ -62,8 +62,11 @@ public class OrderController {
      * @return 订单
      */
     @GetMapping("/order/{id}")
-    public Response<OrderResponse> getOrderById(@PathVariable("id") long id) {
-        return Response.of(orderService.getOrderById(UserContext.getCurrentUser().getId(), id));
+    public Response<OrderResponse> getOrderById(@PathVariable("id") long id,
+                                                @RequestHeader("Token") String token) {
+        String openid = JWTUtil.getUsername(token);
+        User byOpenid = userService.getByOpenid(openid);
+        return Response.of(orderService.getOrderById(byOpenid.getId(), id));
     }
 
     /**
@@ -71,9 +74,12 @@ public class OrderController {
      * @return 响应
      */
     @PostMapping("/order")
-    public Response<OrderResponse> createOrder(@RequestBody OrderInfo orderInfo) {
+    public Response<OrderResponse> createOrder(@RequestBody OrderInfo orderInfo,
+                                               @RequestHeader("Token") String token) throws Exception {
         orderService.deductStock(orderInfo);
-        return Response.of(orderService.createOrder(orderInfo, UserContext.getCurrentUser().getId()));
+        String openid = JWTUtil.getUsername(token);
+        User byOpenid = userService.getByOpenid(openid);
+        return Response.of(orderService.createOrder(orderInfo, byOpenid.getId()));
     }
 
     /**
@@ -84,12 +90,15 @@ public class OrderController {
      * @return 更新后的订单
      */
     @RequestMapping(value = "/order/{id}", method = {RequestMethod.POST, RequestMethod.PATCH})
-    public Response<OrderResponse> updateOrder(@PathVariable("id") long id, @RequestBody OrderTable order) {
+    public Response<OrderResponse> updateOrder(@PathVariable("id") long id, @RequestBody OrderTable order,
+                                               @RequestHeader("Token") String token) {
         order.setId(id);
+        String openid = JWTUtil.getUsername(token);
+        Long userId = userService.getByOpenid(openid).getId();
         if (order.getExpressCompany() != null) {
-            return Response.of(orderService.updateExpressInformation(order, UserContext.getCurrentUser().getId()));
+            return Response.of(orderService.updateExpressInformation(order, userId));
         } else {
-            return Response.of(orderService.updateOrderStatus(order, UserContext.getCurrentUser().getId()));
+            return Response.of(orderService.updateOrderStatus(order, userId));
         }
     }
 
@@ -100,7 +109,10 @@ public class OrderController {
      * @return 删除后的订单
      */
     @DeleteMapping("/order/{id}")
-    public Response<OrderResponse> deleteOrder(@PathVariable("id") long orderId) {
-        return Response.of(orderService.deleteOrder(orderId, UserContext.getCurrentUser().getId()));
+    public Response<OrderResponse> deleteOrder(@PathVariable("id") long orderId,
+                                               @RequestHeader("Token") String token) {
+        String openid = JWTUtil.getUsername(token);
+        Long userId = userService.getByOpenid(openid).getId();
+        return Response.of(orderService.deleteOrder(orderId, userId));
     }
 }

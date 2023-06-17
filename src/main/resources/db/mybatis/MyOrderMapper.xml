@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.hcsp.order.mapper.MyOrderMapper">
+<mapper namespace="com.westee.cake.mapper.MyOrderMapper">
     <insert id="insertOrders" parameterType="OrderInfo">
         insert into `ORDER_GOODS`(GOODS_ID, ORDER_ID, NUMBER)
         values
@@ -15,8 +15,8 @@
         FROM ORDER_GOODS
         WHERE ORDER_ID = #{id}
     </select>
-    <update id="updateById" parameterType="Order">
-        UPDATE `ORDER`
+    <update id="updateById" parameterType="OrderTable">
+        UPDATE ORDER_TABLE
         SET
         UPDATED_AT = now()
         <if test="expressCompany != null">

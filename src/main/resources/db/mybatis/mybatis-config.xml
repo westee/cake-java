@@ -9,6 +9,9 @@
     </settings>
     <typeAliases>
         <typeAlias type="com.westee.cake.generate.Goods" alias="Goods"/>
+        <typeAlias type="com.westee.cake.data.OrderInfo" alias="OrderInfo"/>
+        <typeAlias type="com.westee.cake.data.GoodsInfo" alias="GoodsInfo"/>
+        <typeAlias type="com.westee.cake.generate.OrderTable" alias="OrderTable"/>
     </typeAliases>
     <mappers>
         <mapper resource="db/mybatis/UserMapper.xml"/>
@@ -25,5 +28,6 @@
         <mapper resource="db/mybatis/MyGoodsWithImageMapper.xml"/>
         <mapper resource="db/mybatis/ShoppingCartQuery.xml"/>
         <mapper resource="db/mybatis/MyOrderMapper.xml"/>
+        <mapper resource="db/mybatis/GoodsStockMapper.xml"/>
     </mappers>
 </configuration>

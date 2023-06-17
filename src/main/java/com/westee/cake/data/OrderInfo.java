@@ -4,15 +4,13 @@ import java.util.List;
 
 public class OrderInfo {
     private long orderId;
-    private String address;
+    private long addressId;
     private List<GoodsInfo> goods;
 
-    public String getAddress() {
-        return address;
-    }
+    public long getAddressId() { return addressId; }
 
-    public void setAddress(String address) {
-        this.address = address;
+    public void setAddressId(long address) {
+        this.addressId = address;
     }
 
     public long getOrderId() {
