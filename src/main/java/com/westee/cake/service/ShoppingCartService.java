@@ -7,6 +7,7 @@ import com.westee.cake.entity.GoodsStatus;
 import com.westee.cake.entity.PageResponse;
 import com.westee.cake.entity.ShoppingCartData;
 import com.westee.cake.entity.ShoppingCartGoods;
+import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.Goods;
 import com.westee.cake.generate.ShoppingCart;
 import com.westee.cake.generate.ShoppingCartExample;
@@ -108,16 +109,16 @@ public class ShoppingCartService {
         List<ShoppingCart> rowsToInsert = new ArrayList<>();
 
         for (AddToShoppingCartItem item : request.getGoods()) {
-            ShoppingCart cart = makeShoppingCartRow(item, goodsToMapByGoodsIds);
+            ShoppingCart cart = makeShoppingCartRow(item, goodsToMapByGoodsIds, userId);
             ShoppingCartExample shoppingCartExample = new ShoppingCartExample();
             shoppingCartExample.createCriteria().andUserIdEqualTo(userId).andGoodsIdEqualTo(cart.getGoodsId())
                     .andStatusEqualTo(GoodsStatus.OK.getName());
             // 查找数据库中是否有要插入的商品
-            ShoppingCart existingRow = shoppingCartMapper.selectByExample(shoppingCartExample).get(0);
-
-            if (existingRow == null) {
+            List<ShoppingCart> shoppingCarts = shoppingCartMapper.selectByExample(shoppingCartExample);
+            if (shoppingCarts.isEmpty()) {
                 rowsToInsert.add(cart);
             } else {
+                ShoppingCart existingRow = shoppingCarts.get(0);
                 existingRow.setNumber(existingRow.getNumber() + cart.getNumber());
                 rowsToUpdate.add(existingRow);
             }
@@ -142,7 +143,8 @@ public class ShoppingCartService {
         return merge(result);
     }
 
-    private ShoppingCart makeShoppingCartRow(AddToShoppingCartItem goodsItem, Map<Long, Goods> goodsToMapByGoodsIds) {
+    private ShoppingCart makeShoppingCartRow(AddToShoppingCartItem goodsItem, Map<Long, Goods> goodsToMapByGoodsIds,
+                                             long userId) {
         Goods goods = goodsToMapByGoodsIds.get(goodsItem.getId());
         ShoppingCart shoppingCart = new ShoppingCart();
         shoppingCart.setNumber(goodsItem.getNumber());
@@ -152,7 +154,7 @@ public class ShoppingCartService {
 
         shoppingCart.setGoodsId(goodsItem.getId());
         shoppingCart.setShopId(goods.getShopId());
-        shoppingCart.setUserId(UserContext.getCurrentUser().getId());
+        shoppingCart.setUserId(userId);
 
         return shoppingCart;
     }
@@ -166,5 +168,17 @@ public class ShoppingCartService {
         } else {
             return shoppingCarts.get(0).getNumber();
         }
+    }
+
+    public ShoppingCart updateShoppingCartGoodsNumber(long shoppingCartId, int number, long userId) {
+        ShoppingCart shoppingCart = shoppingCartMapper.selectByPrimaryKey(shoppingCartId);
+        Goods goodsByGoodsId = goodsService.getGoodsByGoodsId(shoppingCart.getGoodsId());
+        if(number > goodsByGoodsId.getStock() || number <= 0) {
+            throw HttpException.badRequest("数量超过限制");
+        } else {
+            shoppingCart.setNumber(number);
+            shoppingCartMapper.updateByPrimaryKey(shoppingCart);
+        }
+        return shoppingCart;
     }
 }

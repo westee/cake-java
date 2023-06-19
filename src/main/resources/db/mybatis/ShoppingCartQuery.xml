@@ -18,6 +18,7 @@
         <collection property="goods" ofType="com.westee.cake.entity.ShoppingCartGoods" javaType="java.util.List">
             <id property="id" column="GOODS_ID"/>
             <result property="name" column="GOODS_NAME"/>
+            <result property="shoppingCartId" column="SHOPPING_CART_ID"/>
             <result property="description" column="GOODS_DESCRIPTION"/>
             <result property="details" column="GOODS_DETAILS"/>
             <result property="imgUrl" column="GOODS_IMG_URL"/>
@@ -51,6 +52,7 @@
                GOODS.CREATED_AT     as GOODS_CREATED_AT,
                GOODS.UPDATED_AT     as GOODS_UPDATED_AT,
                SHOPPING_CART.NUMBER as GOODS_NUMBER,
+               SHOPPING_CART.ID     as SHOPPING_CART_ID,
                GOODS_IMAGE.URL      as IMAGES
         from (select distinct SHOP_ID, USER_ID, GOODS_ID
               from SHOPPING_CART
