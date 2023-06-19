@@ -82,8 +82,9 @@
                GOODS.PRICE          as GOODS_PRICE,
                GOODS.CREATED_AT     as GOODS_CREATED_AT,
                GOODS.UPDATED_AT     as GOODS_UPDATED_AT,
-               SHOPPING_CART.NUMBER as GOODS_NUMBER
-        from (select distinct SHOP_ID
+               SHOPPING_CART.NUMBER as GOODS_NUMBER,
+               GOODS_IMAGE.URL      as IMAGES
+        from (select distinct SHOP_ID, GOODS_ID
               from SHOPPING_CART
               where USER_ID = #{userId}
                 and STATUS = 'ok'
@@ -91,6 +92,7 @@
                  join SHOPPING_CART on t1.SHOP_ID = SHOPPING_CART.SHOP_ID
                  join GOODS on SHOPPING_CART.GOODS_ID = GOODS.ID
                  join SHOP on t1.SHOP_ID = SHOP.ID
+                 left join GOODS_IMAGE on DELETED = 0 and OWNER_GOODS_ID = t1.GOODS_ID
     </select>
 
     <delete id="deleteShoppingCart" parameterType="Map">
