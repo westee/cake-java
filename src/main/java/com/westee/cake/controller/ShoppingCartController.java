@@ -5,12 +5,14 @@ import com.westee.cake.entity.PageResponse;
 import com.westee.cake.entity.Response;
 import com.westee.cake.entity.ResponseMessage;
 import com.westee.cake.entity.ShoppingCartData;
+import com.westee.cake.generate.ShoppingCart;
 import com.westee.cake.realm.JWTUtil;
 import com.westee.cake.service.ShoppingCartService;
 import com.westee.cake.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -64,6 +66,16 @@ public class ShoppingCartController {
         Long id = userService.getByOpenid(openid).getId();
         long l = shoppingCartService.countByGoodsIdAndUserId(goodsId, id);
         return Response.of(ResponseMessage.OK.toString(), l);
+    }
+
+    @PatchMapping("shoppingCart/{shoppingCartId}/{number}")
+    public Response<ShoppingCart> updateShoppingCartNumber(@PathVariable("shoppingCartId") long shoppingCartId,
+                                                           @PathVariable("number") int number,
+                                                           @RequestHeader("Token") String token) {
+        String openid = JWTUtil.getUsername(token);
+        Long userId = userService.getByOpenid(openid).getId();
+        return Response.of(ResponseMessage.OK.toString(),
+                shoppingCartService.updateShoppingCartGoodsNumber(shoppingCartId, number, userId));
     }
 
 }
