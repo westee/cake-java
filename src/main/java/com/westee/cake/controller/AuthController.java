@@ -134,7 +134,7 @@ public class AuthController {
             subject.login(token);
 
             if (subject.isAuthenticated()) {
-                String jwtToken = JWTUtil.sign(token.getUsername()); //使用JWTRealm生成token
+                String jwtToken = JWTUtil.sign(token.getUsername(), type); //使用JWTRealm生成token
                 User userByName;
                 if (type == LoginType.WECHAT_LOGIN) {
                     userByName = userService.getByOpenid(token.getUsername());

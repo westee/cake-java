@@ -21,12 +21,14 @@ public class JWTUtil {
     private static final long EXPIRATION_TIME = 7 * 24 * 60 * 60 * 1000; // 7天
     private static final String ISSUER = "my_issuer"; // JWT签发者
     private static final String secret = "my_secret"; //JWT密钥
+    private static final String MY_TYPE = "my-token-type"; //JWT密钥
 
-    public static String sign(String username) {
+    public static String sign(String username, LoginType type) {
         Algorithm algorithm = Algorithm.HMAC256(secret);
         return JWT.create()
                 .withIssuer(ISSUER)
                 .withSubject(username)
+                .withClaim(MY_TYPE, type.getType())
                 .withExpiresAt(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .sign(algorithm);
     }
@@ -42,6 +44,11 @@ public class JWTUtil {
     public static String getUsername(String token) {
         DecodedJWT decodedJWT = JWT.decode(token);
         return decodedJWT.getSubject();
+    }
+
+    public static String getTokenType(String token) {
+        DecodedJWT decodedJWT = JWT.decode(token);
+        return decodedJWT.getClaim(MY_TYPE).asString();
     }
 
 }
