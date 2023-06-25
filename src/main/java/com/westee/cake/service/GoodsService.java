@@ -8,11 +8,13 @@ import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.Goods;
 import com.westee.cake.generate.GoodsExample;
 import com.westee.cake.generate.GoodsImage;
+import com.westee.cake.generate.GoodsImageExample;
 import com.westee.cake.generate.GoodsImageMapper;
 import com.westee.cake.generate.GoodsMapper;
 import com.westee.cake.generate.Shop;
 import com.westee.cake.generate.ShopMapper;
 import com.westee.cake.generate.User;
+import com.westee.cake.mapper.MyGoodsMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -28,12 +30,14 @@ public class GoodsService {
     private final ShopMapper shopMapper;
     private final GoodsImageMapper goodsImageMapper;
     private final MyGoodsWithImageMapper myGoodsWithImageMapper;
+    private final MyGoodsMapper myGoodsMapper;
 
     @Autowired
     public GoodsService(GoodsMapper goodsMapper, ShopMapper shopMapper, GoodsImageMapper goodsImageMapper,
-                         MyGoodsWithImageMapper myGoodsWithImageMapper) {
+                         MyGoodsWithImageMapper myGoodsWithImageMapper, MyGoodsMapper myGoodsMapper) {
         this.goodsMapper = goodsMapper;
         this.shopMapper = shopMapper;
+        this.myGoodsMapper = myGoodsMapper;
         this.goodsImageMapper = goodsImageMapper;
         this.myGoodsWithImageMapper = myGoodsWithImageMapper;
     }
@@ -118,8 +122,18 @@ public class GoodsService {
     public Map<Long, Goods> getGoodsToMapByGoodsIds(List<Long> goodsIds) {
         GoodsExample example = new GoodsExample();
         example.createCriteria().andIdIn(goodsIds);
-        Map<Long, Goods> collect = goodsMapper.selectByExample(example).stream().collect(Collectors.toMap(Goods::getId, x -> x));
-        return collect;
+        List<Goods> goods = goodsMapper.selectByExample(example);
+        GoodsImageExample goodsImageExample = new GoodsImageExample();
+        goods.forEach(item -> {
+            goodsImageExample.createCriteria().andOwnerGoodsIdEqualTo(item.getId());
+            List<GoodsImage> goodsImages = goodsImageMapper.selectByExample(goodsImageExample);
+            if(goodsImages.isEmpty()){
+                item.setImgUrl("");
+            } else {
+                item.setImgUrl(goodsImages.get(0).getUrl());
+            }
+        });
+        return goods.stream().collect(Collectors.toMap(Goods::getId, x -> x));
     }
 
 
@@ -185,5 +199,9 @@ public class GoodsService {
 
     private boolean isValidDescription(String description) {
         return description.length() <= 1024 && !description.contains("_") && !description.contains("-");
+    }
+
+    public List<Goods> getGoodsByName(String goodsName) {
+        return myGoodsMapper.selectGoodsByName(goodsName);
     }
 }

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.westee.cake.mapper.MyGoodsMapper">
+    <select id="selectGoodsByName" parameterType="string" resultType="com.westee.cake.generate.Goods">
+        SELECT
+            tg.ID as ID,
+            tg.NAME as NAME,
+            tg.DESCRIPTION as DESCRIPTION,
+            tg.PRICE as PRICE,
+            tg.VIP_PRICE as VIP_PRICE,
+            tg.STOCK as STOCK,
+            tg.SHOP_ID as SHOP_ID,
+            GOODS_IMAGE.URL as IMG_URL
+        FROM
+            (
+            SELECT * FROM GOODS
+            WHERE
+            <if test="name != null and name != ''">
+                name LIKE '%' #{name} '%'
+            </if>
+            ) tg
+        LEFT JOIN GOODS_IMAGE on tg.ID = GOODS_IMAGE.OWNER_GOODS_ID and GOODS_IMAGE.DELETED = 0
+    </select>
+
+</mapper>

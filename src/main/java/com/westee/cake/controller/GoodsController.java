@@ -57,4 +57,9 @@ public class GoodsController {
         return Response.of(ResponseMessage.OK.toString(), goodsService.updateGoods(goods));
     }
 
+    @GetMapping("/goods/search")
+    public List<Goods> updateGoods(@RequestParam String goodsName) {
+        return goodsService.getGoodsByName(goodsName);
+    }
+
 }
