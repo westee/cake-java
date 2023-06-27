@@ -24,6 +24,8 @@ public class OrderResponse extends OrderTable {
         this.setCreatedAt(order.getCreatedAt());
         this.setUpdatedAt(order.getUpdatedAt());
         this.setShopId(order.getShopId());
+        this.setPickupCode(order.getPickupCode());
+        this.setPickupType(order.getPickupType());
     }
 
     public Shop getShop() {

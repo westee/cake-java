@@ -34,4 +34,17 @@
         WHERE
         ID = #{id}
     </update>
+    <select id="getOrderList" resultType="OrderTable">
+        select * from ORDER_TABLE
+        WHERE
+        <if test="status != null">
+            STATUS = #{status} AND
+        </if>
+        <if test="status == null">
+            STATUS != 'deleted' AND
+        </if>
+        USER_ID = #{userId}
+        ORDER BY CREATED_AT DESC
+        limit #{start}, #{offset}
+    </select>
 </mapper>

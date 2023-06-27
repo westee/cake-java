@@ -1,12 +1,12 @@
 package com.westee.cake.service;
 
-import com.github.pagehelper.PageHelper;
 import com.westee.cake.dao.GoodsStockMapper;
 import com.westee.cake.data.DataStatus;
 import com.westee.cake.data.GoodsInfo;
 import com.westee.cake.data.OrderGoodsVO;
 import com.westee.cake.data.OrderInfo;
 import com.westee.cake.entity.GoodsWithNumber;
+import com.westee.cake.entity.OrderPickupStatus;
 import com.westee.cake.entity.OrderResponse;
 import com.westee.cake.entity.PageResponse;
 import com.westee.cake.entity.ShoppingCartStatus;
@@ -36,9 +36,11 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
+import static com.westee.cake.data.DataStatus.PAID;
 import static com.westee.cake.data.DataStatus.PENDING;
 import static com.westee.cake.entity.GoodsStatus.DELETED;
 import static java.util.stream.Collectors.toList;
@@ -320,12 +322,9 @@ public class OrderService {
         int count = (int) orderMapper.countByExample(countByStatus);
 
         OrderTableExample pagedOrder = new OrderTableExample();
-//        pagedOrder.setOffset((pageNum - 1) * pageSize);
-//        pagedOrder.setLimit(pageNum);
         setStatus(pagedOrder, status).andUserIdEqualTo(userId);
 
-        PageHelper.startPage(pageNum, pageSize);
-        List<OrderTable> orders = orderMapper.selectByExample(pagedOrder);
+        List<OrderTable> orders = myOrderMapper.getOrderList(status != null ? status.getName() : null, userId, (pageNum-1)*pageSize, pageSize);
         List<OrderGoods> orderGoods = getOrderGoods(orders);
 
         int totalPage = count % pageSize == 0 ? count / pageSize : count / pageSize + 1;
@@ -394,6 +393,12 @@ public class OrderService {
         }
     }
 
+    /**
+     * TODO 以后添加外卖方式
+     * 暂时只支持到店自取
+     *
+     * @param order 订单
+     */
     private void insertOrder(OrderTable order) {
         order.setStatus(PENDING.getName());
 
@@ -405,9 +410,31 @@ public class OrderService {
         order.setExpressId(null);
         order.setCreatedAt(new Date());
         order.setUpdatedAt(new Date());
+        String s = generateRandomCode();
+
+        while (!isCodesEmpty(s)) {
+            s = generateRandomCode();
+        }
+        order.setPickupCode(s);
+        order.setPickupType(OrderPickupStatus.STORE.getValue());
 
         orderMapper.insert(order);
     }
+
+    /**
+     * 到底自取时需要生成
+     *
+     * @param code 取货码
+     * @return 最近一周是否有未使用的到店自取的验证码
+     */
+    private boolean isCodesEmpty(String code) {
+        OrderTableExample orderTableExample = new OrderTableExample();
+        orderTableExample.createCriteria().andPickupCodeEqualTo(code)
+                .andPickupTypeEqualTo(OrderPickupStatus.STORE.getValue()).andStatusEqualTo(PAID.getName());
+        List<OrderTable> orderTables = orderMapper.selectByExample(orderTableExample);
+        return orderTables.isEmpty();
+    }
+
 
     private void verify(BooleanSupplier supplier, String message) {
         if (supplier.getAsBoolean()) {
@@ -429,5 +456,16 @@ public class OrderService {
             result = result.add(goods.getPrice().multiply(new BigDecimal(goodsInfo.getNumber())));
         }
         return result;
+    }
+
+    private static String generateRandomCode() {
+        StringBuilder sb = new StringBuilder();
+        String letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        Random random = new Random();
+        for (int i = 0; i < 4; i++) {
+            int index = random.nextInt(letters.length());
+            sb.append(letters.charAt(index));
+        }
+        return sb.toString();
     }
 }

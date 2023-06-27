@@ -5,6 +5,7 @@ import com.westee.cake.data.OrderInfo;
 import com.westee.cake.entity.OrderResponse;
 import com.westee.cake.entity.PageResponse;
 import com.westee.cake.entity.Response;
+import com.westee.cake.entity.ResponseMessage;
 import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.OrderTable;
 import com.westee.cake.generate.User;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrderController {
     private final OrderService orderService;
     private final UserService userService;
+
     @Autowired
     public OrderController(OrderService orderService, UserService userService) {
         this.orderService = orderService;
@@ -43,8 +45,8 @@ public class OrderController {
      * @return 结果
      */
     @GetMapping("/order")
-    public PageResponse<OrderResponse> getOrder(@RequestParam("pageNum") Integer pageNum,
-                                                @RequestParam("pageSize") Integer pageSize,
+    public PageResponse<OrderResponse> getOrder(@RequestParam(name = "pageNum", required = false, defaultValue = "1") Integer pageNum,
+                                                @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer pageSize,
                                                 @RequestParam(value = "status", required = false) String status,
                                                 @RequestHeader("Token") String token) {
         if (status != null && DataStatus.fromStatus(status) == null) {
@@ -66,7 +68,7 @@ public class OrderController {
                                                 @RequestHeader("Token") String token) {
         String openid = JWTUtil.getUsername(token);
         User byOpenid = userService.getByOpenid(openid);
-        return Response.of(orderService.getOrderById(byOpenid.getId(), id));
+        return Response.of(ResponseMessage.OK.toString(), orderService.getOrderById(byOpenid.getId(), id));
     }
 
     /**
@@ -79,7 +81,7 @@ public class OrderController {
         orderService.deductStock(orderInfo);
         String openid = JWTUtil.getUsername(token);
         User byOpenid = userService.getByOpenid(openid);
-        return Response.of(orderService.createOrder(orderInfo, byOpenid.getId()));
+        return Response.of(ResponseMessage.OK.toString(), orderService.createOrder(orderInfo, byOpenid.getId()));
     }
 
     /**
@@ -96,9 +98,9 @@ public class OrderController {
         String openid = JWTUtil.getUsername(token);
         Long userId = userService.getByOpenid(openid).getId();
         if (order.getExpressCompany() != null) {
-            return Response.of(orderService.updateExpressInformation(order, userId));
+            return Response.of(ResponseMessage.OK.toString(), orderService.updateExpressInformation(order, userId));
         } else {
-            return Response.of(orderService.updateOrderStatus(order, userId));
+            return Response.of(ResponseMessage.OK.toString(), orderService.updateOrderStatus(order, userId));
         }
     }
 
@@ -113,6 +115,6 @@ public class OrderController {
                                                @RequestHeader("Token") String token) {
         String openid = JWTUtil.getUsername(token);
         Long userId = userService.getByOpenid(openid).getId();
-        return Response.of(orderService.deleteOrder(orderId, userId));
+        return Response.of(ResponseMessage.OK.toString(), orderService.deleteOrder(orderId, userId));
     }
 }
