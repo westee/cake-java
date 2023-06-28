@@ -78,7 +78,7 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse createOrder(OrderInfo orderInfo, Long userId) throws Exception {
+    public OrderResponse createOrder(OrderInfo orderInfo, Long userId) throws RuntimeException {
         deductStock(orderInfo);
 
         Map<Long, Goods> idToGoodsMap = getIdTOGoodsMap(orderInfo.getGoods());
@@ -249,6 +249,8 @@ public class OrderService {
 
         OrderTable copy = new OrderTable();
         copy.setStatus(order.getStatus());
+        copy.setId(order.getId());
+        copy.setUpdatedAt(new Date());
         return toOrderResponse(updateOrder(order));
     }
 
@@ -361,7 +363,7 @@ public class OrderService {
     }
 
     public OrderGoodsVO updateOrder(OrderTable order) {
-        orderMapper.updateByPrimaryKey(order);
+        orderMapper.updateByPrimaryKeySelective(order);
 
         List<GoodsInfo> goodsInfo = myOrderMapper.getGoodsInfoOfOrder(order.getId());
         OrderGoodsVO result = new OrderGoodsVO();
