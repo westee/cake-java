@@ -8,6 +8,8 @@ import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.User;
 import com.westee.cake.generate.UserExample;
 import com.westee.cake.generate.UserMapper;
+import com.westee.cake.realm.JWTUtil;
+import com.westee.cake.realm.LoginType;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.crypto.hash.Sha256Hash;
 import org.apache.shiro.subject.Subject;
@@ -20,6 +22,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class UserService {
@@ -43,9 +46,18 @@ public class UserService {
         return userMapper.selectByExample(userExample).get(0);
     }
 
+    /**
+     * 根据用户名查询User，没找到抛出错误
+     * 不能帮助用户直接创建用户，因为没有密码
+     * @param name 用户名
+     * @return     User
+     */
     public User getUserByName(String name) {
         UserExample user = new UserExample();
         user.createCriteria().andNameEqualTo(name);
+        if(userMapper.selectByExample(user).isEmpty()) {
+            throw HttpException.notAuthorized("用户名或密码不正确");
+        }
         return userMapper.selectByExample(user).get(0);
     }
 
@@ -57,6 +69,18 @@ public class UserService {
             createUserIfNotExist(openid);
         }
         return users.get(0);
+    }
+
+    public User getUserByToken(String token) {
+        String username = JWTUtil.getUsername(token);
+        String tokenType = JWTUtil.getTokenType(token);
+        User user;
+        if (Objects.equals(tokenType, LoginType.WECHAT_LOGIN.getType())) {
+            user = getByOpenid(username);
+        } else {
+            user = getUserByName(username);
+        }
+        return user;
     }
 
     public void createUserIfNotExist(WeChatSession weChatSession) {
@@ -116,7 +140,7 @@ public class UserService {
                 return user;
             }
         }
-       throw HttpException.notAuthorized("未登录");
+        throw HttpException.notAuthorized("未登录");
     }
 
     public User updateUser(User user) {
