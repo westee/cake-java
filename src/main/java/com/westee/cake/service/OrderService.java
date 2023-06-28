@@ -228,7 +228,7 @@ public class OrderService {
      * @return 全部扣减成功，返回true，否则返回false。
      */
     @Transactional
-    public void deductStock(OrderInfo orderInfo) throws Exception {
+    public void deductStock(OrderInfo orderInfo) throws RuntimeException {
         for (GoodsInfo goodsInfo : orderInfo.getGoods()) {
             if (goodsStockMapper.deductStock(goodsInfo) <= 0) {
 //                LOGGER.error("扣减库存失败，商品id:" + goodsInfo.getId());
@@ -298,12 +298,16 @@ public class OrderService {
                 .map(OrderGoodsVO::getGoods)
                 .flatMap(List::stream)
                 .collect(Collectors.toList());
-
-        Map<Long, Goods> idToGoodsMap = getIdTOGoodsMap(goodsInfo);
-        List<OrderResponse> orders = OrderGoodsResponse.getData()
-                .stream()
-                .map(order -> generateResponse(order.getOrder(), idToGoodsMap, order.getGoods()))
-                .collect(Collectors.toList());
+        List<OrderResponse> orders;
+        if(goodsInfo.isEmpty()) {
+            orders = new ArrayList<>();
+        } else {
+            Map<Long, Goods> idToGoodsMap = getIdTOGoodsMap(goodsInfo);
+            orders  = OrderGoodsResponse.getData()
+                    .stream()
+                    .map(order -> generateResponse(order.getOrder(), idToGoodsMap, order.getGoods()))
+                    .collect(Collectors.toList());
+        }
 
         return PageResponse.pageData(
                 OrderGoodsResponse.getPageNum(),
