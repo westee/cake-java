@@ -62,7 +62,9 @@ public class GoodsController {
                                            @RequestParam(name = "pageSize", defaultValue = "10", required = false) Integer pageSize,
                                            @RequestParam String goodsName) {
         int start = (pageNum - 1) * pageSize;
-        return PageResponse.pageData(pageNum,pageSize, 1, goodsService.getGoodsByName(start, pageSize, goodsName));
+        int count = goodsService.countGoodsByName(goodsName);
+        int totalPage = count % pageSize == 0 ? count / pageSize : count / pageSize + 1;
+        return PageResponse.pageData(pageNum,pageSize, totalPage, goodsService.getGoodsByName(start, pageSize, goodsName));
     }
 
 }

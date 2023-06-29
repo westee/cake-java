@@ -24,5 +24,10 @@
         ORDER BY tg.CREATED_AT DESC
         LIMIT #{start},#{offset}
     </select>
+    <select id="countGoodsByName" parameterType="string" resultType="int">
+        SELECT COUNT(*)
+        FROM GOODS
+        WHERE STATUS != 'deleted' AND  `NAME` LIKE '%' #{name} '%';
+    </select>
 
 </mapper>

@@ -8,4 +8,5 @@ import java.util.List;
 @Mapper
 public interface MyGoodsMapper {
     List<Goods> selectGoodsByName(int start, int offset, String name);
+    int countGoodsByName(String name);
 }

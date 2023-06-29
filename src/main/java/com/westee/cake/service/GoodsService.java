@@ -34,7 +34,7 @@ public class GoodsService {
 
     @Autowired
     public GoodsService(GoodsMapper goodsMapper, ShopMapper shopMapper, GoodsImageMapper goodsImageMapper,
-                         MyGoodsWithImageMapper myGoodsWithImageMapper, MyGoodsMapper myGoodsMapper) {
+                        MyGoodsWithImageMapper myGoodsWithImageMapper, MyGoodsMapper myGoodsMapper) {
         this.goodsMapper = goodsMapper;
         this.shopMapper = shopMapper;
         this.myGoodsMapper = myGoodsMapper;
@@ -57,7 +57,7 @@ public class GoodsService {
         }
     }
 
-    public List<GoodsWithImages> getGoodsByShopId( Long shopId, Long categoryId) {
+    public List<GoodsWithImages> getGoodsByShopId(Long shopId, Long categoryId) {
         Shop shop = shopMapper.selectByPrimaryKey(shopId);
         if (shop != null) {
             GoodsExample goodsExample = new GoodsExample();
@@ -127,7 +127,7 @@ public class GoodsService {
         goods.forEach(item -> {
             goodsImageExample.createCriteria().andOwnerGoodsIdEqualTo(item.getId());
             List<GoodsImage> goodsImages = goodsImageMapper.selectByExample(goodsImageExample);
-            if(goodsImages.isEmpty()){
+            if (goodsImages.isEmpty()) {
                 item.setImgUrl("");
             } else {
                 item.setImgUrl(goodsImages.get(0).getUrl());
@@ -202,6 +202,10 @@ public class GoodsService {
     }
 
     public List<Goods> getGoodsByName(int pageNum, int pageSize, String goodsName) {
-        return myGoodsMapper.selectGoodsByName(pageNum, pageSize,goodsName);
+        return myGoodsMapper.selectGoodsByName(pageNum, pageSize, goodsName);
+    }
+
+    public int countGoodsByName(String goodsName) {
+        return myGoodsMapper.countGoodsByName(goodsName);
     }
 }
