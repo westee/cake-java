@@ -58,8 +58,11 @@ public class GoodsController {
     }
 
     @GetMapping("/goods/search")
-    public List<Goods> updateGoods(@RequestParam String goodsName) {
-        return goodsService.getGoodsByName(goodsName);
+    public PageResponse<Goods> updateGoods(@RequestParam(name = "pageNum", defaultValue = "1", required = false) Integer pageNum,
+                                           @RequestParam(name = "pageSize", defaultValue = "10", required = false) Integer pageSize,
+                                           @RequestParam String goodsName) {
+        int start = (pageNum - 1) * pageSize;
+        return PageResponse.pageData(pageNum,pageSize, 1, goodsService.getGoodsByName(start, pageSize, goodsName));
     }
 
 }

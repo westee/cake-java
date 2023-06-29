@@ -16,10 +16,13 @@
             SELECT * FROM GOODS
             WHERE
             <if test="name != null and name != ''">
-                name LIKE '%' #{name} '%'
+                name LIKE '%' #{name} '%' AND
             </if>
+                STATUS != 'deleted'
             ) tg
         LEFT JOIN GOODS_IMAGE on tg.ID = GOODS_IMAGE.OWNER_GOODS_ID and GOODS_IMAGE.DELETED = 0
+        ORDER BY tg.CREATED_AT DESC
+        LIMIT #{start},#{offset}
     </select>
 
 </mapper>

@@ -201,7 +201,7 @@ public class GoodsService {
         return description.length() <= 1024 && !description.contains("_") && !description.contains("-");
     }
 
-    public List<Goods> getGoodsByName(String goodsName) {
-        return myGoodsMapper.selectGoodsByName(goodsName);
+    public List<Goods> getGoodsByName(int pageNum, int pageSize, String goodsName) {
+        return myGoodsMapper.selectGoodsByName(pageNum, pageSize,goodsName);
     }
 }

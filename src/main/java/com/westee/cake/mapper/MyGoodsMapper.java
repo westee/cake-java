@@ -7,5 +7,5 @@ import java.util.List;
 
 @Mapper
 public interface MyGoodsMapper {
-    List<Goods> selectGoodsByName(String name);
+    List<Goods> selectGoodsByName(int start, int offset, String name);
 }
