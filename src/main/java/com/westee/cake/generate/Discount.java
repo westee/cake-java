@@ -132,4 +132,8 @@ public class Discount implements Serializable {
     public void setGoodsId(Long goodsId) {
         this.goodsId = goodsId;
     }
+
+    public BigDecimal getDiscountedPrice(BigDecimal originalPrice) {
+        return originalPrice.multiply(discount);
+    }
 }

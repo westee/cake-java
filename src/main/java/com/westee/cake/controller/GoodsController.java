@@ -26,7 +26,7 @@ public class GoodsController {
                                                  @RequestParam(name = "pageSize", defaultValue = "10", required = false) Integer pageSize,
                                                  @RequestParam(name = "shopId") Long shopId) {
 
-        return goodsService.getGoodsByShopId(pageNum, pageSize, shopId);
+        return goodsService.getGoodsByShopIdAndCategoryId(pageNum, pageSize, shopId);
     }
 
     @GetMapping("/goods-category")
@@ -34,7 +34,7 @@ public class GoodsController {
             @RequestParam(name = "shopId") Long shopId,
             @RequestParam(name = "categoryId") Long categoryId) {
 
-        return Response.of(ResponseMessage.OK.toString() ,goodsService.getGoodsByShopId(shopId, categoryId)) ;
+        return Response.of(ResponseMessage.OK.toString() ,goodsService.getGoodsByShopIdAndCategoryId(shopId, categoryId)) ;
     }
 
     @GetMapping("/goods/{goodsId}")

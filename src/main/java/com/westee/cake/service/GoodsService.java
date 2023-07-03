@@ -5,6 +5,9 @@ import com.westee.cake.entity.GoodsStatus;
 import com.westee.cake.entity.GoodsWithImages;
 import com.westee.cake.entity.PageResponse;
 import com.westee.cake.exceptions.HttpException;
+import com.westee.cake.generate.Discount;
+import com.westee.cake.generate.DiscountExample;
+import com.westee.cake.generate.DiscountMapper;
 import com.westee.cake.generate.Goods;
 import com.westee.cake.generate.GoodsExample;
 import com.westee.cake.generate.GoodsImage;
@@ -18,6 +21,7 @@ import com.westee.cake.mapper.MyGoodsMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -31,18 +35,21 @@ public class GoodsService {
     private final GoodsImageMapper goodsImageMapper;
     private final MyGoodsWithImageMapper myGoodsWithImageMapper;
     private final MyGoodsMapper myGoodsMapper;
+    private final DiscountMapper discountMapper;
 
     @Autowired
     public GoodsService(GoodsMapper goodsMapper, ShopMapper shopMapper, GoodsImageMapper goodsImageMapper,
-                        MyGoodsWithImageMapper myGoodsWithImageMapper, MyGoodsMapper myGoodsMapper) {
+                        MyGoodsWithImageMapper myGoodsWithImageMapper, MyGoodsMapper myGoodsMapper,
+                        DiscountMapper discountMapper) {
         this.goodsMapper = goodsMapper;
         this.shopMapper = shopMapper;
         this.myGoodsMapper = myGoodsMapper;
         this.goodsImageMapper = goodsImageMapper;
+        this.discountMapper = discountMapper;
         this.myGoodsWithImageMapper = myGoodsWithImageMapper;
     }
 
-    public PageResponse<GoodsWithImages> getGoodsByShopId(Integer pageNum, Integer pageSize, Long shopId) {
+    public PageResponse<GoodsWithImages> getGoodsByShopIdAndCategoryId(Integer pageNum, Integer pageSize, Long shopId) {
         Shop shop = shopMapper.selectByPrimaryKey(shopId);
         if (shop != null) {
             GoodsExample goodsExample = new GoodsExample();
@@ -51,25 +58,30 @@ public class GoodsService {
             int offset = (pageNum - 1) * pageSize;
             List<GoodsWithImages> goodsListWithImageByShopId =
                     myGoodsWithImageMapper.getGoodsListWithImageByShopId(shopId, pageSize, offset);
+            goodsListWithImageByShopId.forEach(goodsWithImages -> goodsWithImages.setVipPrice(getGoodsDiscountPrice(goodsWithImages)));
             return PageResponse.pageData(pageNum, pageSize, totalPage, goodsListWithImageByShopId);
         } else {
             throw HttpException.forbidden("没有权限");
         }
     }
 
-    public List<GoodsWithImages> getGoodsByShopId(Long shopId, Long categoryId) {
+    public List<GoodsWithImages> getGoodsByShopIdAndCategoryId(Long shopId, Long categoryId) {
         Shop shop = shopMapper.selectByPrimaryKey(shopId);
         if (shop != null) {
             GoodsExample goodsExample = new GoodsExample();
             goodsExample.createCriteria().andCategoryIdEqualTo(categoryId).andStatusEqualTo(GoodsStatus.OK.getName());
-            return myGoodsWithImageMapper.getGoodsListWithImageByShopIdAndCategory(shopId, categoryId);
+            List<GoodsWithImages> goodsListWithImageByShopIdAndCategory = myGoodsWithImageMapper.getGoodsListWithImageByShopIdAndCategory(shopId, categoryId);
+            goodsListWithImageByShopIdAndCategory.forEach(goodsWithImages -> goodsWithImages.setVipPrice(getGoodsDiscountPrice(goodsWithImages)));
+            return goodsListWithImageByShopIdAndCategory;
         } else {
             throw HttpException.forbidden("没有权限");
         }
     }
 
-    public Goods getGoodsByGoodsId(long goodsId) {
-        return myGoodsWithImageMapper.getGoodsWithImage(goodsId);
+    public GoodsWithImages getGoodsByGoodsId(long goodsId) {
+        GoodsWithImages goodsWithImage = myGoodsWithImageMapper.getGoodsWithImage(goodsId);
+        goodsWithImage.setVipPrice(getGoodsDiscountPrice(goodsWithImage));
+        return goodsWithImage;
 //        return goodsMapper.selectByPrimaryKey(goodsId);
     }
 
@@ -136,30 +148,33 @@ public class GoodsService {
         return goods.stream().collect(Collectors.toMap(Goods::getId, x -> x));
     }
 
+    public List<Goods> getGoodsByName(int pageNum, int pageSize, String goodsName) {
+        List<Goods> goodsList = myGoodsMapper.selectGoodsByName(pageNum, pageSize, goodsName);
+        goodsList.forEach(goods -> goods.setVipPrice(getGoodsDiscountPrice(goods)));
+        return goodsList;
+    }
 
-    public void checkGoodsBelongToUser(Goods goods) {
-        // 根据goods的shop查询当前用户是不是店铺的拥有者
-        User sessionUser = UserService.getSessionUser();
-        Long userId = sessionUser.getId();
+    public int countGoodsByName(String goodsName) {
+        return myGoodsMapper.countGoodsByName(goodsName);
+    }
 
-        Long goodsId = goods.getId();
-        Goods goodsResult;
-        Shop shopResult;
-        // 非新创建商品 删除商品时只传了商品id
-        if (goodsId != null) {
-            goodsResult = goodsMapper.selectByPrimaryKey(goodsId);
-            Long shopId = goodsResult.getShopId();
-            shopResult = shopMapper.selectByPrimaryKey(shopId);
-        } else {
-            // 新创建的商品 没有商品id
-            shopResult = shopMapper.selectByPrimaryKey(goods.getShopId());
+    public BigDecimal getGoodsDiscountPrice(Goods goods) {
+        DiscountExample discountExample = new DiscountExample();
+        discountExample.createCriteria().andGoodsIdEqualTo(goods.getId());
+        List<Discount> discounts = discountMapper.selectByExample(discountExample);
+        if (discounts.isEmpty()) {
+            return null;
         }
-        if (shopResult == null) {
-            throw HttpException.forbidden("参数不合法");
-        }
-        if (!Objects.equals(shopResult.getOwnerUserId(), userId)) {
-            throw HttpException.forbidden("拒绝访问");
-        }
+        Discount discount = discounts.get(0);
+        return discount.getDiscountedPrice(goods.getPrice());
+    }
+
+    private boolean isValidName(String name) {
+        return name.length() <= 100 && !name.contains("_") && !name.contains("-");
+    }
+
+    private boolean isValidDescription(String description) {
+        return description.length() <= 1024 && !description.contains("_") && !description.contains("-");
     }
 
     public boolean checkFieldsLegal(Goods goods) {
@@ -193,19 +208,28 @@ public class GoodsService {
         return isLegal;
     }
 
-    private boolean isValidName(String name) {
-        return name.length() <= 100 && !name.contains("_") && !name.contains("-");
-    }
+    public void checkGoodsBelongToUser(Goods goods) {
+        // 根据goods的shop查询当前用户是不是店铺的拥有者
+        User sessionUser = UserService.getSessionUser();
+        Long userId = sessionUser.getId();
 
-    private boolean isValidDescription(String description) {
-        return description.length() <= 1024 && !description.contains("_") && !description.contains("-");
-    }
-
-    public List<Goods> getGoodsByName(int pageNum, int pageSize, String goodsName) {
-        return myGoodsMapper.selectGoodsByName(pageNum, pageSize, goodsName);
-    }
-
-    public int countGoodsByName(String goodsName) {
-        return myGoodsMapper.countGoodsByName(goodsName);
+        Long goodsId = goods.getId();
+        Goods goodsResult;
+        Shop shopResult;
+        // 非新创建商品 删除商品时只传了商品id
+        if (goodsId != null) {
+            goodsResult = goodsMapper.selectByPrimaryKey(goodsId);
+            Long shopId = goodsResult.getShopId();
+            shopResult = shopMapper.selectByPrimaryKey(shopId);
+        } else {
+            // 新创建的商品 没有商品id
+            shopResult = shopMapper.selectByPrimaryKey(goods.getShopId());
+        }
+        if (shopResult == null) {
+            throw HttpException.forbidden("参数不合法");
+        }
+        if (!Objects.equals(shopResult.getOwnerUserId(), userId)) {
+            throw HttpException.forbidden("拒绝访问");
+        }
     }
 }
