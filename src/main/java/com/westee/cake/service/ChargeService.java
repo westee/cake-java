@@ -57,7 +57,6 @@ public class ChargeService {
 
     public PageResponse<Charge> getChargeList(Long userId, Integer pageNum, Integer pageSize) {
         ChargeExample chargeExample = new ChargeExample();
-        PageHelper.startPage(pageNum, pageSize);
         chargeExample.createCriteria().andUserIdEqualTo(userId);
         chargeExample.setOrderByClause("`CREATED_AT` DESC");
         long count = chargeMapper.countByExample(chargeExample);
