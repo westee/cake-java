@@ -1,0 +1,6 @@
+CREATE TABLE DISCOUNT
+(
+    ID          BIGINT PRIMARY KEY AUTO_INCREMENT,
+    DISCOUNT    DECIMAL(2, 2), -- 共两位数，两位数为小数
+    GOODS_ID    BIGINT
+)

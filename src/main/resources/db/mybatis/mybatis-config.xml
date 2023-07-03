@@ -25,6 +25,7 @@
         <mapper resource="db/mybatis/OrderTableMapper.xml"/>
         <mapper resource="db/mybatis/AddressMapper.xml"/>
         <mapper resource="db/mybatis/ChargeMapper.xml"/>
+        <mapper resource="db/mybatis/DiscountMapper.xml"/>
 
         <mapper resource="db/mybatis/MyGoodsWithImageMapper.xml"/>
         <mapper resource="db/mybatis/ShoppingCartQuery.xml"/>
