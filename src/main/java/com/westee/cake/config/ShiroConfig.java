@@ -36,6 +36,9 @@ import java.util.Map;
 
 @Configuration
 public class ShiroConfig implements WebMvcConfigurer {
+    /**
+     * TODO 尚未配置好所有jwt接口
+     */
     @Bean
     public ShiroFilterFactoryBean shiroFilterFactoryBean(SecurityManager securityManager, ShiroLoginFilter shiroLoginFilter) {
         ShiroFilterFactoryBean shiroFilterFactoryBean = new ShiroFilterFactoryBean();
@@ -44,13 +47,13 @@ public class ShiroConfig implements WebMvcConfigurer {
         Map<String, String> pattern = new HashMap<>();
         pattern.put("/api/v1/code", "anon");
         pattern.put("/api/v1/login", "anon");
-        pattern.put("/api/v1/login**", "anon");
+        pattern.put("/api/v1/login-password", "anon");
         pattern.put("/api/v1/register**", "anon");
         pattern.put("/api/v1/status", "anon");
         pattern.put("/api/v1/logout", "anon");
 
         pattern.put("/api/v1/token", "jwt");
-        pattern.put("/api/v1/test", "jwt");
+        pattern.put("/api/v1/user", "jwt");
 
         Map<String, Filter> filtersMap = new LinkedHashMap<>();
         filtersMap.put("shiroLoginFilter", shiroLoginFilter);
@@ -77,7 +80,9 @@ public class ShiroConfig implements WebMvcConfigurer {
         securityManager.setRealms(realms);
 
         securityManager.setCacheManager(new MemoryConstrainedCacheManager());
-        securityManager.setSessionManager(new DefaultWebSessionManager());
+        DefaultWebSessionManager defaultWebSessionManager = new DefaultWebSessionManager();
+        defaultWebSessionManager.setGlobalSessionTimeout(1000L * 60 * 60 * 60 * 24 * 30); // 30天
+        securityManager.setSessionManager(defaultWebSessionManager);
         securityManager.setRememberMeManager(rememberMeManager());
         SecurityUtils.setSecurityManager(securityManager);
         return securityManager;

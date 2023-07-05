@@ -7,7 +7,6 @@ import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.Shop;
 import com.westee.cake.generate.ShopExample;
 import com.westee.cake.generate.ShopMapper;
-import com.westee.cake.generate.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,9 +23,7 @@ public class ShopService {
         this.shopMapper = mapper;
     }
 
-    public PageResponse<Shop> getShopsByUserId(Integer pageNum, Integer pageSize) {
-        User sessionUser = UserService.getSessionUser();
-        Long userId = sessionUser.getId();
+    public PageResponse<Shop> getShopsByUserId(Integer pageNum, Integer pageSize, long userId) {
         ShopExample shopExample = new ShopExample();
         shopExample.createCriteria().andOwnerUserIdEqualTo(userId).andStatusEqualTo(GoodsStatus.OK.getName());
         long count = shopMapper.countByExample(shopExample);
@@ -36,9 +33,7 @@ public class ShopService {
         return PageResponse.pageData(pageNum, pageSize, totalPage, shops);
     }
 
-    public Shop createShop(Shop shop) {
-        User sessionUser = UserService.getSessionUser();
-        Long userId = sessionUser.getId();
+    public Shop createShop(Shop shop, long userId) {
         shop.setOwnerUserId(userId);
         shop.setId(null);
         shop.setStatus(GoodsStatus.OK.getName());
@@ -49,10 +44,7 @@ public class ShopService {
         return shop;
     }
 
-    public Shop updateShop(Shop shop) {
-        User sessionUser = UserService.getSessionUser();
-        Long userId = sessionUser.getId();
-
+    public Shop updateShop(Shop shop, long userId) {
         Shop shopResult = shopMapper.selectByPrimaryKey(shop.getId());
         if (Objects.equals(shopResult, null)) {
             throw HttpException.forbidden("参数不合法");
@@ -68,10 +60,7 @@ public class ShopService {
         }
     }
 
-    public Shop deleteShop(Long shopId) {
-        User sessionUser = UserService.getSessionUser();
-        Long userId = sessionUser.getId();
-
+    public Shop deleteShop(Long shopId, long userId) {
         Shop shop = shopMapper.selectByPrimaryKey(shopId);
         if (Objects.equals(shop, null)) {
             throw HttpException.forbidden("参数不合法");
