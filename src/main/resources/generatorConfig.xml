@@ -82,6 +82,14 @@
             <property name="useActualColumnNames" value="false"/>
             <generatedKey column="ID" sqlStatement="MySql" identity="true" />
         </table>
+        <table schema="cake" tableName="COUPON" domainObjectName="Coupon">
+            <property name="useActualColumnNames" value="false"/>
+            <generatedKey column="ID" sqlStatement="MySql" identity="true" />
+        </table>
+        <table schema="cake" tableName="USER_COUPON" domainObjectName="UserCoupon">
+            <property name="useActualColumnNames" value="false"/>
+            <generatedKey column="ID" sqlStatement="MySql" identity="true" />
+        </table>
 
     </context>
 </generatorConfiguration>

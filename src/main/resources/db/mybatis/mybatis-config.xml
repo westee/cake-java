@@ -26,6 +26,8 @@
         <mapper resource="db/mybatis/AddressMapper.xml"/>
         <mapper resource="db/mybatis/ChargeMapper.xml"/>
         <mapper resource="db/mybatis/DiscountMapper.xml"/>
+        <mapper resource="db/mybatis/CouponMapper.xml"/>
+        <mapper resource="db/mybatis/UserCouponMapper.xml"/>
 
         <mapper resource="db/mybatis/MyGoodsWithImageMapper.xml"/>
         <mapper resource="db/mybatis/ShoppingCartQuery.xml"/>
