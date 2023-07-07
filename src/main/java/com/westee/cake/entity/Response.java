@@ -9,6 +9,10 @@ public class Response<T> {
         return new Response<T>(message, data);
     }
 
+    public static <T> Response<T> ok(T data) {
+        return new Response<T>(ResponseMessage.OK.toString(), data);
+    }
+
     public static <T> Response<T> of(T data) {
         return new Response<T>(null, data);
     }
@@ -18,7 +22,8 @@ public class Response<T> {
         this.data = data;
     }
 
-    public Response() {}
+    public Response() {
+    }
 
     public String getMessage() {
         return message;
