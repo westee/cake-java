@@ -11,19 +11,7 @@ import com.westee.cake.entity.OrderResponse;
 import com.westee.cake.entity.PageResponse;
 import com.westee.cake.entity.ShoppingCartStatus;
 import com.westee.cake.exceptions.HttpException;
-import com.westee.cake.generate.AddressMapper;
-import com.westee.cake.generate.Goods;
-import com.westee.cake.generate.OrderGoods;
-import com.westee.cake.generate.OrderGoodsExample;
-import com.westee.cake.generate.OrderGoodsMapper;
-import com.westee.cake.generate.OrderTable;
-import com.westee.cake.generate.OrderTableExample;
-import com.westee.cake.generate.OrderTableMapper;
-import com.westee.cake.generate.Shop;
-import com.westee.cake.generate.ShopMapper;
-import com.westee.cake.generate.ShoppingCart;
-import com.westee.cake.generate.ShoppingCartExample;
-import com.westee.cake.generate.ShoppingCartMapper;
+import com.westee.cake.generate.*;
 import com.westee.cake.mapper.MyOrderMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -63,10 +51,17 @@ public class OrderService {
 
     private final AddressMapper addressMapper;
 
+    private final UserMapper userMapper;
+
+    private final UserCouponMapper userCouponMapper;
+
+    private final CouponMapper couponMapper;
+
     @Autowired
     public OrderService(OrderTableMapper orderMapper, MyOrderMapper myOrderMapper, OrderGoodsMapper orderGoodsMapper,
                         ShopMapper shopMapper, GoodsService goodsService, GoodsStockMapper goodsStockMapper,
-                        ShoppingCartMapper shoppingCartMapper, AddressMapper addressMapper) {
+                        ShoppingCartMapper shoppingCartMapper, AddressMapper addressMapper,
+                        UserMapper userMapper, UserCouponMapper userCouponMapper, CouponMapper couponMapper) {
         this.shopMapper = shopMapper;
         this.shoppingCartMapper = shoppingCartMapper;
         this.orderMapper = orderMapper;
@@ -75,16 +70,83 @@ public class OrderService {
         this.goodsStockMapper = goodsStockMapper;
         this.orderGoodsMapper = orderGoodsMapper;
         this.addressMapper = addressMapper;
+        this.userMapper = userMapper;
+        this.userCouponMapper = userCouponMapper;
+        this.couponMapper = couponMapper;
     }
 
+    /**
+     * 减库存 使用优惠券 扣款
+     * 插入order order_goods
+     *
+     * @param orderInfo
+     * @param userId
+     * @param couponId
+     * @return
+     * @throws RuntimeException
+     */
     @Transactional
-    public OrderResponse createOrder(OrderInfo orderInfo, Long userId) throws RuntimeException {
+    public OrderResponse createOrder(OrderInfo orderInfo, Long userId, long couponId) throws RuntimeException {
+        Map<Long, Goods> idToGoodsMap = getIdTOGoodsMap(orderInfo.getGoods());
+        BigDecimal totalPriceBeforeCoupon = calculateTotalPrice(orderInfo, idToGoodsMap);
+        // 使用优惠券
+        BigDecimal totalPrice = useCoupon(userId, couponId, totalPriceBeforeCoupon);
+
+        // 扣款
+        deductUserMoney(userId, totalPrice);
+
+        // 扣减库存
         deductStock(orderInfo);
 
-        Map<Long, Goods> idToGoodsMap = getIdTOGoodsMap(orderInfo.getGoods());
         OrderTable createOrder = createdOrderViaRpc(orderInfo, idToGoodsMap, userId);
 
         return generateResponse(createOrder, idToGoodsMap, orderInfo.getGoods());
+    }
+
+    /**
+     * @param userId   用户id
+     * @param totalFee 商品总价格/花费
+     */
+    public void deductUserMoney(long userId, BigDecimal totalFee) {
+        User user = userMapper.selectByPrimaryKey(userId);
+        // 如果用户余额为空 或者 余额小于totalFee 提示余额不足 否则对用户的balance进行操作
+        if (Objects.isNull(user.getBalance()) || user.getBalance().compareTo(totalFee) < 0) { // 如果用户的余额小于总费用，返回一个负数；
+            throw HttpException.badRequest("余额不足");
+        } else {
+            BigDecimal newBalance = user.getBalance().subtract(totalFee);
+            user.setBalance(newBalance);
+            userMapper.updateByPrimaryKey(user);
+        }
+    }
+
+    /**
+     * 同一个couponId只该查到一个未使用 未到期的优惠券
+     *
+     * @param userId
+     * @param couponId
+     * @param totalFee
+     */
+    public BigDecimal useCoupon(long userId, long couponId, BigDecimal totalFee) {
+        Coupon coupon = couponMapper.selectByPrimaryKey(couponId);
+        UserCouponExample userCouponExample = new UserCouponExample();
+        userCouponExample.createCriteria().andUsedEqualTo(false).andUserIdEqualTo(userId).andCouponIdEqualTo(couponId);
+        List<UserCoupon> userCoupons = userCouponMapper.selectByExample(userCouponExample);
+        if (Objects.isNull(coupon) || userCoupons.isEmpty()) {
+            throw HttpException.badRequest("优惠券不合法");
+        }
+
+        userCoupons.forEach(item -> {
+            item.setUsed(true);
+            item.setUsedTime(new Date());
+            item.setUpdatedAt(new Date());
+            userCouponMapper.updateByPrimaryKey(item);
+        });
+
+        if(Objects.equals(coupon.getDiscountType(), "AMOUNT")) { // "AMOUNT" "PERCENTAGE"
+            return totalFee.subtract(coupon.getDiscountAmount());
+        } else {
+            return totalFee.multiply(coupon.getDiscountPercentage());
+        }
     }
 
     /**
@@ -301,11 +363,11 @@ public class OrderService {
                 .flatMap(List::stream)
                 .collect(Collectors.toList());
         List<OrderResponse> orders;
-        if(goodsInfo.isEmpty()) {
+        if (goodsInfo.isEmpty()) {
             orders = new ArrayList<>();
         } else {
             Map<Long, Goods> idToGoodsMap = getIdTOGoodsMap(goodsInfo);
-            orders  = OrderGoodsResponse.getData()
+            orders = OrderGoodsResponse.getData()
                     .stream()
                     .map(order -> generateResponse(order.getOrder(), idToGoodsMap, order.getGoods()))
                     .collect(Collectors.toList());
@@ -330,7 +392,7 @@ public class OrderService {
         OrderTableExample pagedOrder = new OrderTableExample();
         setStatus(pagedOrder, status).andUserIdEqualTo(userId);
 
-        List<OrderTable> orders = myOrderMapper.getOrderList(status != null ? status.getName() : null, userId, (pageNum-1)*pageSize, pageSize);
+        List<OrderTable> orders = myOrderMapper.getOrderList(status != null ? status.getName() : null, userId, (pageNum - 1) * pageSize, pageSize);
         List<OrderGoods> orderGoods = getOrderGoods(orders);
 
         int totalPage = count % pageSize == 0 ? count / pageSize : count / pageSize + 1;

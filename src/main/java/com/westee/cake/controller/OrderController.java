@@ -73,10 +73,11 @@ public class OrderController {
      */
     @PostMapping("/order")
     public Response<OrderResponse> createOrder(@RequestBody OrderInfo orderInfo,
-                                               @RequestHeader("Token") String token) throws Exception {
+                                               @RequestParam(required = false) Long couponId,
+                                               @RequestHeader("Token") String token) throws RuntimeException {
         orderService.deductStock(orderInfo);
         Long userId = userService.getUserByToken(token).getId();
-        return Response.of(ResponseMessage.OK.toString(), orderService.createOrder(orderInfo, userId));
+        return Response.of(ResponseMessage.OK.toString(), orderService.createOrder(orderInfo, userId, couponId));
     }
 
     /**
