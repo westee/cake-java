@@ -90,8 +90,8 @@ public class CouponService {
 
         // 根据优惠券id 以及起止时间查询优惠券
         ArrayList<Coupon> coupons = new ArrayList<>();
-        CouponExample couponExample = new CouponExample();
         userCoupons.forEach(userCoupon -> {
+            CouponExample couponExample = new CouponExample();
             couponExample.createCriteria().andStartDateLessThanOrEqualTo(new Date()).andEndDateGreaterThan(new Date())
                     .andIdEqualTo(userCoupon.getCouponId());
             List<Coupon> couponList = couponMapper.selectByExample(couponExample);
