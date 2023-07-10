@@ -7,6 +7,7 @@ import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.Address;
 import com.westee.cake.generate.AddressExample;
 import com.westee.cake.generate.AddressMapper;
+import com.westee.cake.mapper.MyAddressMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,10 +18,12 @@ import java.util.Objects;
 @Service
 public class AddressService {
     private final AddressMapper addressMapper;
+    private final MyAddressMapper myAddressMapper;
 
     @Autowired
-    public AddressService(AddressMapper mapper) {
+    public AddressService(AddressMapper mapper, MyAddressMapper myAddressMapper) {
         this.addressMapper = mapper;
+        this.myAddressMapper = myAddressMapper;
     }
 
     public PageResponse<Address> getAddressListByShopId(int pageNum, int pageSize, long userId) {
@@ -33,8 +36,15 @@ public class AddressService {
         return PageResponse.pageData(pageNum, pageSize, totalPage, addressList);
     }
 
-    public Address getAddressById(long addressId) {
-        return addressMapper.selectByPrimaryKey(addressId);
+    public Address getAddressById(long addressId, long userId) {
+        Address address = addressMapper.selectByPrimaryKey(addressId);
+        if (Objects.isNull(address)) {
+            throw HttpException.notFound("地址未找到");
+        }
+        if (!Objects.equals(address.getUserId(), userId)) {
+            throw HttpException.notAuthorized("没有权限");
+        }
+        return address;
     }
 
     public Address createAddress(Address address, long userId) {
@@ -77,6 +87,23 @@ public class AddressService {
             return address;
         } else {
             throw HttpException.forbidden("拒绝访问");
+        }
+    }
+
+    public Address getAddressDefaultOrNewest(Long tokenUserId) {
+        AddressExample addressExample = new AddressExample();
+        addressExample.createCriteria().andUserIdEqualTo(tokenUserId).andDefaultAddressEqualTo(true);
+
+        List<Address> addressList = addressMapper.selectByExample(addressExample);
+        if (addressList.isEmpty()) {
+            Address address = myAddressMapper.selectLatestAddress(tokenUserId);
+            if (Objects.isNull(address)) {
+                throw HttpException.notFound("请先添加一个地址");
+            } else {
+                return address;
+            }
+        } else {
+            return addressList.get(0);
         }
     }
 }
