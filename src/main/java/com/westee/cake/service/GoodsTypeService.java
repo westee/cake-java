@@ -6,7 +6,6 @@ import com.westee.cake.generate.GoodsTypesExample;
 import com.westee.cake.generate.GoodsTypesMapper;
 import com.westee.cake.generate.Shop;
 import com.westee.cake.generate.ShopMapper;
-import com.westee.cake.generate.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -25,13 +24,13 @@ public class GoodsTypeService {
         this.shopMapper = shopMapper;
     }
 
-    public GoodsTypes createGoodsType(String typeName, long shopId) {
+    public GoodsTypes createGoodsType(String typeName, long shopId, long userId) {
         GoodsTypes goodsTypes = new GoodsTypes();
         goodsTypes.setName(typeName);
         goodsTypes.setOwnerShopId(shopId);
         goodsTypes.setCreatedAt(new Date());
         goodsTypes.setUpdatedAt(new Date());
-        checkBelongToUser(goodsTypes);
+        checkBelongToUser(goodsTypes, userId);
         goodsTypesMapper.insert(goodsTypes);
         return goodsTypes;
     }
@@ -39,28 +38,24 @@ public class GoodsTypeService {
     public List<GoodsTypes> getGoodsTypesByShopId(Long shopId) {
         GoodsTypesExample goodsTypesExample = new GoodsTypesExample();
         goodsTypesExample.createCriteria().andOwnerShopIdEqualTo(shopId).andDeletedIsNull();
-        List<GoodsTypes> goodsTypes = goodsTypesMapper.selectByExample(goodsTypesExample);
-        return goodsTypes;
+        return goodsTypesMapper.selectByExample(goodsTypesExample);
     }
 
-    public GoodsTypes updateGoodsTypes(GoodsTypes goodsTypes) {
-        checkBelongToUser(goodsTypes);
+    public GoodsTypes updateGoodsTypes(GoodsTypes goodsTypes, long userId) {
+        checkBelongToUser(goodsTypes, userId);
         goodsTypesMapper.updateByPrimaryKey(goodsTypes);
         return goodsTypes;
     }
 
-    public GoodsTypes deleteGoodsTypes(GoodsTypes goodsTypes) {
-        checkBelongToUser(goodsTypes);
+    public GoodsTypes deleteGoodsTypes(GoodsTypes goodsTypes, long userId) {
+        checkBelongToUser(goodsTypes, userId);
         goodsTypes.setDeleted(1);
         goodsTypesMapper.updateByPrimaryKeySelective(goodsTypes);
         return goodsTypes;
     }
 
-    public void checkBelongToUser(GoodsTypes goodsTypes) {
+    public void checkBelongToUser(GoodsTypes goodsTypes, long userId) {
         // 根据goods的shop查询当前用户是不是店铺的拥有者
-        User sessionUser = UserService.getSessionUser();
-        Long userId = sessionUser.getId();
-
         Shop shopResult = shopMapper.selectByPrimaryKey(goodsTypes.getOwnerShopId());
         if (shopResult == null) {
             throw HttpException.forbidden("参数不合法");
