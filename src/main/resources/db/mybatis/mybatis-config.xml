@@ -29,6 +29,7 @@
         <mapper resource="db/mybatis/CouponMapper.xml"/>
         <mapper resource="db/mybatis/UserCouponMapper.xml"/>
         <mapper resource="db/mybatis/SwiperMapper.xml"/>
+        <mapper resource="db/mybatis/ChargeOptionMapper.xml"/>
 
         <mapper resource="db/mybatis/MyGoodsWithImageMapper.xml"/>
         <mapper resource="db/mybatis/ShoppingCartQuery.xml"/>

@@ -94,6 +94,10 @@
             <property name="useActualColumnNames" value="false"/>
             <generatedKey column="ID" sqlStatement="MySql" identity="true" />
         </table>
+        <table schema="cake" tableName="CHARGE_OPTION" domainObjectName="ChargeOption">
+            <property name="useActualColumnNames" value="false"/>
+            <generatedKey column="ID" sqlStatement="MySql" identity="true" />
+        </table>
 
     </context>
 </generatorConfiguration>
