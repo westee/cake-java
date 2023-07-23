@@ -2,7 +2,6 @@ package com.westee.cake.controller;
 
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.westee.cake.entity.Response;
-import com.westee.cake.entity.ResponseMessage;
 import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.User;
 import com.westee.cake.realm.JWTUtil;
@@ -10,6 +9,7 @@ import com.westee.cake.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,12 +29,16 @@ public class UserController {
 
     @PatchMapping("user")
     public Response<User> updateUser(@RequestBody User user, @RequestHeader("Token") String token ) {
-        String openid = JWTUtil.getUsername(token);
-        User byOpenid = userService.getByOpenid(openid);
+        User byOpenid = userService.getByOpenid(token);
         if (Objects.equals(user.getId(), null) || !Objects.equals(byOpenid.getId(), user.getId())) {
             throw HttpException.forbidden("没有权限");
         }
-        return Response.of(ResponseMessage.OK.toString(), userService.updateUser(user)) ;
+        return Response.ok(userService.updateUser(user)) ;
+    }
+
+    @PostMapping("user")
+    public Response<User> updateUser(@RequestBody User user) {
+        return Response.ok(userService.insertUser(user)) ;
     }
 
     @GetMapping("user")
@@ -46,6 +50,6 @@ public class UserController {
         }
         String openid = JWTUtil.getUsername(token);
         User byOpenid = userService.getByOpenid(openid);
-        return Response.of(ResponseMessage.OK.toString(), byOpenid);
+        return Response.ok(byOpenid);
     }
 }
