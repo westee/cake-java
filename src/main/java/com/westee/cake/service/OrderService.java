@@ -215,7 +215,7 @@ public class OrderService {
     public OrderTable rpcCreateOrder(OrderInfo orderInfo, OrderTable order) {
         insertOrder(order);
         orderInfo.setOrderId(order.getId());
-        myOrderMapper.insertOrders(orderInfo);
+        myOrderMapper.insertMultipleOrderGoods(orderInfo);
         return order;
     }
 
@@ -285,9 +285,8 @@ public class OrderService {
 
     /**
      * 扣减库存
-     *
+     * 全部扣减成功，返回true，否则返回false。
      * @param orderInfo
-     * @return 全部扣减成功，返回true，否则返回false。
      */
     @Transactional
     public void deductStock(OrderInfo orderInfo) throws RuntimeException {
@@ -349,42 +348,10 @@ public class OrderService {
                 .stream()
                 .map(GoodsInfo::getId)
                 .collect(Collectors.toList());
-        Map<Long, Goods> idToGoodsMap = goodsService.getGoodsToMapByGoodsIds(goodsId);
-        return idToGoodsMap;
+        return goodsService.getGoodsToMapByGoodsIds(goodsId);
     }
 
     public PageResponse<OrderResponse> getOrder(long userId, Integer pageNum, Integer pageSize, DataStatus status) {
-        PageResponse<OrderGoodsVO> OrderGoodsResponse = rpcGetOrder(userId, pageNum, pageSize, status);
-
-        List<GoodsInfo> goodsInfo = OrderGoodsResponse
-                .getData()
-                .stream()
-                .map(OrderGoodsVO::getGoods)
-                .flatMap(List::stream)
-                .collect(Collectors.toList());
-        List<OrderResponse> orders;
-        if (goodsInfo.isEmpty()) {
-            orders = new ArrayList<>();
-        } else {
-            Map<Long, Goods> idToGoodsMap = getIdTOGoodsMap(goodsInfo);
-            orders = OrderGoodsResponse.getData()
-                    .stream()
-                    .map(order -> generateResponse(order.getOrder(), idToGoodsMap, order.getGoods()))
-                    .collect(Collectors.toList());
-        }
-
-        return PageResponse.pageData(
-                OrderGoodsResponse.getPageNum(),
-                OrderGoodsResponse.getPageSize(),
-                OrderGoodsResponse.getTotalPage(),
-                orders
-        );
-    }
-
-    public PageResponse<OrderGoodsVO> rpcGetOrder(long userId,
-                                                  Integer pageNum,
-                                                  Integer pageSize,
-                                                  DataStatus status) {
         OrderTableExample countByStatus = new OrderTableExample();
         setStatus(countByStatus, status).andUserIdEqualTo(userId);
         int count = (int) orderMapper.countByExample(countByStatus);
@@ -401,16 +368,33 @@ public class OrderService {
                 .stream()
                 .collect(Collectors.groupingBy(OrderGoods::getOrderId, toList()));
 
-        List<OrderGoodsVO> OrderGoodsVO = orders.stream()
+        List<OrderGoodsVO> orderGoodsVO = orders.stream()
                 .map(order -> toOrderGoodsVO(order, orderIdToGoodsMap))
                 .collect(toList());
 
-        return PageResponse.pageData(pageNum,
+        List<GoodsInfo> goodsInfo = orderGoodsVO.stream()
+                .map(OrderGoodsVO::getGoods)
+                .flatMap(List::stream)
+                .collect(toList());
+
+        List<OrderResponse> orderResponseList;
+        if (goodsInfo.isEmpty()) {
+            orderResponseList = new ArrayList<>();
+        } else {
+            Map<Long, Goods> idToGoodsMap = getIdTOGoodsMap(goodsInfo);
+            orderResponseList = orderGoodsVO
+                    .stream()
+                    .map(order -> generateResponse(order.getOrder(), idToGoodsMap, order.getGoods()))
+                    .collect(Collectors.toList());
+        }
+
+        return PageResponse.pageData(
+                pageNum,
                 pageSize,
                 totalPage,
-                OrderGoodsVO);
+                orderResponseList
+        );
     }
-
 
     private List<OrderGoods> getOrderGoods(List<OrderTable> orders) {
         if (orders.isEmpty()) {
@@ -503,7 +487,6 @@ public class OrderService {
         return orderTables.isEmpty();
     }
 
-
     private void verify(BooleanSupplier supplier, String message) {
         if (supplier.getAsBoolean()) {
             throw new IllegalArgumentException(message);
@@ -535,5 +518,9 @@ public class OrderService {
             sb.append(letters.charAt(index));
         }
         return sb.toString();
+    }
+
+    public OrderTable getOrderByOrderNo(String outTradeNo) {
+        return null;
     }
 }
