@@ -2,6 +2,7 @@ package com.westee.cake.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.westee.cake.config.WxPayConfig;
 import com.westee.cake.entity.UsernameAndPassword;
 import com.westee.cake.entity.WeChatSession;
 import com.westee.cake.exceptions.HttpException;
@@ -22,24 +23,25 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
 public class UserService {
-    public static String salt = "salt"; // 可以从配置文件中读取或者生成一个随机的字符串
-    private static final String APPID = "wx9xxxxxxxxxxx9b4";
-    private static final String SECRET = "685742***************84xs859";
-
+    private final WxPayConfig wxPayConfig;
     private final UserMapper userMapper;
 
     @Autowired
-    public UserService(UserMapper userMapper) {
+    public UserService(UserMapper userMapper, WxPayConfig wxPayConfig) {
         this.userMapper = userMapper;
+        this.wxPayConfig = wxPayConfig;
     }
 
     public User createUserIfNotExist(String openid) {
         User user = new User();
         user.setWxOpenId(openid);
+        user.setUpdatedAt(new Date());
+        user.setCreatedAt(new Date());
         userMapper.insert(user);
         UserExample userExample = new UserExample();
         userExample.createCriteria().andWxOpenIdEqualTo(openid);
@@ -66,7 +68,7 @@ public class UserService {
         userExample.createCriteria().andWxOpenIdEqualTo(openid);
         List<User> users = userMapper.selectByExample(userExample);
         if (users.size() == 0) {
-            createUserIfNotExist(openid);
+            throw HttpException.notAuthorized("用户未授权");
         }
         return users.get(0);
     }
@@ -83,34 +85,50 @@ public class UserService {
         return user;
     }
 
-    public void createUserIfNotExist(WeChatSession weChatSession) {
-
+    public void createUserIfNotExist(WeChatSession weChatSession, String avatar, String name) {
+        UserExample userExample = new UserExample();
+        userExample.createCriteria().andWxOpenIdEqualTo(weChatSession.getOpenid());
+        if(userMapper.selectByExample(userExample).isEmpty()) {
+            User user = new User();
+            user.setNickname(name);
+            user.setAvatarUrl(avatar);
+            user.setWxOpenId(weChatSession.getOpenid());
+            user.setWxSessionKey(weChatSession.getSession_key());
+            Date date = new Date();
+            user.setCreatedAt(date);
+            user.setUpdatedAt(date);
+            userMapper.insert(user);
+        }
     }
 
     public void createUserIfNotExist(UsernameAndPassword usernameAndPassword) {
         User user = new User();
         user.setName(usernameAndPassword.getUsername());
-        user.setPassword(new Sha256Hash(usernameAndPassword.getPassword(), salt).toString());
+        user.setPassword(new Sha256Hash(usernameAndPassword.getPassword(), wxPayConfig.getSALT()).toString());
         Date date = new Date();
         user.setCreatedAt(date);
         user.setUpdatedAt(date);
         userMapper.insert(user);
     }
 
-    public WeChatSession getWeChatSession(String wxcode) throws JsonProcessingException {
+    public WeChatSession getWeChatSession(Map<String, String> body) throws JsonProcessingException {
         RestTemplate restTemplate = new RestTemplate();
-        String resourceURL = "https://api.weixin.qq.com/sns/jscode2session?appid=" + APPID +
-                "&secret=" + SECRET + "&js_code=" + wxcode + "&grant_type=authorization_code";
+        String resourceURL = "https://api.weixin.qq.com/sns/jscode2session?appid=" +  wxPayConfig.getAPPID() +
+                "&secret=" + wxPayConfig.getSECRET() + "&js_code=" + body.get("wxcode") + "&grant_type=authorization_code";
 
         ResponseEntity<String> responseEntity = restTemplate.exchange(resourceURL, HttpMethod.GET, null, String.class);
         System.out.println(responseEntity);
         WeChatSession weChatSession = null;
         if (responseEntity.getStatusCode() == HttpStatus.OK) {
-
             String sessionData = responseEntity.getBody();
             //解析从微信服务器获得的openid和session_key;
             ObjectMapper objectMapper = new ObjectMapper();
             weChatSession = objectMapper.readValue(sessionData, WeChatSession.class);
+
+            if(Objects.nonNull(weChatSession.getOpenid())) {
+                createUserIfNotExist(weChatSession, body.get("avatar") == null ? "" : body.get("avatar"),
+                        body.get("name") == null ? "" : body.get("name"));
+            }
 
             //获取用户的唯一标识
             String openid = weChatSession.getOpenid();
@@ -121,7 +139,7 @@ public class UserService {
 
             return weChatSession;
         }
-        return weChatSession;
+        throw HttpException.badRequest(responseEntity.getBody());
     }
 
     public static User getSessionUser() {
@@ -145,6 +163,11 @@ public class UserService {
 
     public User updateUser(User user) {
         userMapper.updateByPrimaryKeySelective(user);
+        return user;
+    }
+
+    public User insertUser(User user) {
+        userMapper.insert(user);
         return user;
     }
 }
