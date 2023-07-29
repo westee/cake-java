@@ -40,5 +40,6 @@
         <mapper resource="db/mybatis/MyOrderMapper.xml"/>
         <mapper resource="db/mybatis/MyGoodsMapper.xml"/>
         <mapper resource="db/mybatis/GoodsStockMapper.xml"/>
+        <mapper resource="db/mybatis/MyCakeWithTagMapper.xml"/>
     </mappers>
 </configuration>

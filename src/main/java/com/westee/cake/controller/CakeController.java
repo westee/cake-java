@@ -1,5 +1,6 @@
 package com.westee.cake.controller;
 
+import com.westee.cake.entity.CakeWithTag;
 import com.westee.cake.entity.PageResponse;
 import com.westee.cake.entity.Response;
 import com.westee.cake.generate.Cake;
@@ -29,13 +30,13 @@ public class CakeController {
     }
 
     @GetMapping("cake")
-    public PageResponse<Cake> getCakeList(@RequestParam(name = "pageNum", required = false, defaultValue = "1") Integer pageNum,
+    public PageResponse<CakeWithTag> getCakeList(@RequestParam(name = "pageNum", required = false, defaultValue = "1") Integer pageNum,
                                           @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer pageSize) {
         return cakeService.getCakeList(pageNum, pageSize);
     }
 
     @PostMapping("cake")
-    public Response<Cake> createCake(@RequestBody Cake cake,
+    public Response<Cake> createCake(@RequestBody CakeWithTag cake,
                                      @RequestHeader("Token") String token) {
         Long roleId = userService.getUserByToken(token).getRoleId();
         return Response.ok(cakeService.insertCake(cake, roleId));

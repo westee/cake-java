@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.westee.cake.dao.MyCakeWithTagMapper">
+    <resultMap id="cakeWithTag" type="com.westee.cake.entity.CakeWithTag">
+        <id column="ID" javaType="java.lang.Long"/>
+        <result column="NAME" jdbcType="VARCHAR" property="name" />
+        <result column="IMG_URL" jdbcType="VARCHAR" property="imgUrl" />
+        <result column="DELETED" jdbcType="TINYINT" property="deleted" />
+        <result column="CREATED_AT" jdbcType="TIMESTAMP" property="createdAt" />
+        <result column="UPDATED_AT" jdbcType="TIMESTAMP" property="updatedAt" />
+        <collection property="tags" ofType="com.westee.cake.generate.CakeTag">
+            <id column="TAG_ID" javaType="java.lang.Long" jdbcType="BIGINT" property="id"/>
+            <result column="TAG_NAME" jdbcType="VARCHAR" property="name" />
+        </collection>
+    </resultMap>
+
+    <select id="selectCakeWithTagsByCakeId" resultMap="cakeWithTag">
+        SELECT c.ID, c.NAME, c.IMG_URL, c.DELETED, c.CREATED_AT, c.UPDATED_AT,ct.ID AS TAG_ID, ct.NAME AS TAG_NAME
+        FROM CAKE c
+                 LEFT JOIN CAKE_TAG_MAPPING ctm ON c.ID = ctm.CAKE_ID AND ctm.DELETED = 0
+                 LEFT JOIN CAKE_TAG ct ON ct.ID = ctm.TAG_ID AND ct.DELETED = 0
+        WHERE c.ID = #{cakeId}
+          AND c.DELETED = 0;
+    </select>
+
+</mapper>

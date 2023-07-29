@@ -39,6 +39,7 @@ public class CakeTagService {
         checkAuthorization(roleId);
         tag.setCreatedAt(new Date());
         tag.setUpdatedAt(new Date());
+        tag.setDeleted(false);
         cakeTagMapper.insert(tag);
         return tag;
     }
