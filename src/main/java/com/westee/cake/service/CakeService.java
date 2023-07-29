@@ -53,12 +53,14 @@ public class CakeService {
         checkAuthorization(roleId);
         cake.setCreatedAt(new Date());
         cake.setUpdatedAt(new Date());
+        cake.setDeleted(false);
         cakeMapper.insert(cake);
 
         cake.getTags().forEach(tag -> {
             CakeTagMapping cakeTagMapping = new CakeTagMapping();
             cakeTagMapping.setCakeId(cake.getId().toString());
             cakeTagMapping.setTagId(tag.getId().toString());
+            cakeTagMapping.setDeleted(false);
             cakeTagMapping.setCreatedAt(new Date());
             cakeTagMapping.setUpdatedAt(new Date());
             cakeTagMappingMapper.insert(cakeTagMapping);
