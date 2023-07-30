@@ -111,6 +111,10 @@ public class CouponService {
         List<Long> couponIdList = userCoupons.stream()
                 .map(UserCoupon::getId)
                 .collect(Collectors.toList());
+        if (couponIdList.isEmpty()) {
+            return 0;
+        }
+
         CouponExample couponExample = new CouponExample();
         couponExample.createCriteria().andIdIn(couponIdList).andEndDateGreaterThan(new Date());
         return couponMapper.countByExample(couponExample);
