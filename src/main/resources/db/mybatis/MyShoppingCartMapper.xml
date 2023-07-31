@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.westee.cake.dao.MyShoppingCartMapper">
+    <update id="updateByExampleSelectiveWithStatus" parameterType="map">
+        UPDATE SHOPPING_CART
+        <set>
+            <if test="status != null">
+                STATUS = #{status},
+            </if>
+            <if test="updatedAt != null">
+                UPDATED_AT = #{updatedAt},
+            </if>
+        </set>
+        <where>
+            STATUS = 'ok' AND
+            <foreach collection="goodsList" item="goods" index="index" separator=" OR ">
+                <if test="goods.id != null">
+                    (GOODS_ID = #{goods.id} AND USER_ID = #{userId})
+                </if>
+            </foreach>
+        </where>
+    </update>
+</mapper>

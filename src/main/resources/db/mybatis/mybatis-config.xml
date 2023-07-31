@@ -41,5 +41,6 @@
         <mapper resource="db/mybatis/MyGoodsMapper.xml"/>
         <mapper resource="db/mybatis/GoodsStockMapper.xml"/>
         <mapper resource="db/mybatis/MyCakeWithTagMapper.xml"/>
+        <mapper resource="db/mybatis/MyShoppingCartMapper.xml"/>
     </mappers>
 </configuration>
