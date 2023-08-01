@@ -20,6 +20,7 @@ CREATE TABLE ADDRESS
     LATITUDE         DECIMAL(10, 6),
     LONGITUDE        DECIMAL(10, 6),
     PHONE_NUMBER     VARCHAR(11),
+    DEFAULT_ADDRESS  BIT,
     SPECIFIC_ADDRESS VARCHAR(50),                  -- 门牌号之类的具体地址
     GENDER           TINYINT,                      -- 0男 ； 1 女
     DELETED          INT                DEFAULT 0, -- 0 未删除; 1 已删除
