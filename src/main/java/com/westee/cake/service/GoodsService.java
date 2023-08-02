@@ -5,9 +5,9 @@ import com.westee.cake.entity.GoodsStatus;
 import com.westee.cake.entity.GoodsWithImages;
 import com.westee.cake.entity.PageResponse;
 import com.westee.cake.exceptions.HttpException;
-import com.westee.cake.generate.Discount;
-import com.westee.cake.generate.DiscountExample;
-import com.westee.cake.generate.DiscountMapper;
+import com.westee.cake.generate.DiscountDay;
+import com.westee.cake.generate.DiscountDayExample;
+import com.westee.cake.generate.DiscountDayMapper;
 import com.westee.cake.generate.Goods;
 import com.westee.cake.generate.GoodsExample;
 import com.westee.cake.generate.GoodsImage;
@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -35,18 +36,18 @@ public class GoodsService {
     private final GoodsImageMapper goodsImageMapper;
     private final MyGoodsWithImageMapper myGoodsWithImageMapper;
     private final MyGoodsMapper myGoodsMapper;
-    private final DiscountMapper discountMapper;
+    private final DiscountDayMapper discountDayMapper;
 
     @Autowired
     public GoodsService(GoodsMapper goodsMapper, ShopMapper shopMapper, GoodsImageMapper goodsImageMapper,
                         MyGoodsWithImageMapper myGoodsWithImageMapper, MyGoodsMapper myGoodsMapper,
-                        DiscountMapper discountMapper) {
+                         DiscountDayMapper discountDayMapper) {
         this.goodsMapper = goodsMapper;
         this.shopMapper = shopMapper;
         this.myGoodsMapper = myGoodsMapper;
         this.goodsImageMapper = goodsImageMapper;
-        this.discountMapper = discountMapper;
         this.myGoodsWithImageMapper = myGoodsWithImageMapper;
+        this.discountDayMapper = discountDayMapper;
     }
 
     public PageResponse<GoodsWithImages> getGoodsByShopIdAndCategoryId(Integer pageNum, Integer pageSize, Long shopId) {
@@ -82,7 +83,6 @@ public class GoodsService {
         GoodsWithImages goodsWithImage = myGoodsWithImageMapper.getGoodsWithImage(goodsId);
         goodsWithImage.setVipPrice(getGoodsDiscountPrice(goodsWithImage));
         return goodsWithImage;
-//        return goodsMapper.selectByPrimaryKey(goodsId);
     }
 
     public GoodsWithImages createGoods(GoodsWithImages goods) {
@@ -97,7 +97,6 @@ public class GoodsService {
             throw HttpException.badRequest("参数不合法");
         }
         return myGoodsWithImageMapper.getGoodsWithImage(goods.getId());
-//        return goodsMapper.selectByPrimaryKey(goods.getId());
     }
 
     private void insertGoodsImage(List<String> images, long goodsId) {
@@ -158,15 +157,24 @@ public class GoodsService {
         return myGoodsMapper.countGoodsByName(goodsName);
     }
 
+    /**
+     * 折扣日
+     * 活动价格放在vip price中
+     * @param goods     商品
+     * @return          优惠价格
+     */
     public BigDecimal getGoodsDiscountPrice(Goods goods) {
-        DiscountExample discountExample = new DiscountExample();
-        discountExample.createCriteria().andGoodsIdEqualTo(goods.getId());
-        List<Discount> discounts = discountMapper.selectByExample(discountExample);
-        if (discounts.isEmpty()) {
+        DiscountDayExample discountDayExample = new DiscountDayExample();
+        discountDayExample.createCriteria().andGoodsIdEqualTo(goods.getId());
+        List<DiscountDay> discountDays = discountDayMapper.selectByExample(discountDayExample);
+        if (discountDays.isEmpty()) {
             return null;
         }
-        Discount discount = discounts.get(0);
-        return discount.getDiscountedPrice(goods.getPrice());
+        DiscountDay discountDay = discountDays.get(0);
+        if (discountDay.getDisabled() || !isDiscountDay(discountDay.getDays())) {
+            return null;
+        }
+        return discountDay.getPrice();
     }
 
     private boolean isValidName(String name) {
@@ -231,5 +239,12 @@ public class GoodsService {
         if (!Objects.equals(shopResult.getOwnerUserId(), userId)) {
             throw HttpException.forbidden("拒绝访问");
         }
+    }
+
+    public boolean isDiscountDay(String days) {
+        Calendar calendar = Calendar.getInstance();
+        int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+        String dayOfWeekStr = String.valueOf(dayOfWeek - 1);
+        return days.contains(dayOfWeekStr);
     }
 }
