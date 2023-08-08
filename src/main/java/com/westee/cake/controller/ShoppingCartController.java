@@ -3,7 +3,6 @@ package com.westee.cake.controller;
 import com.westee.cake.entity.AddToShoppingCartRequest;
 import com.westee.cake.entity.PageResponse;
 import com.westee.cake.entity.Response;
-import com.westee.cake.entity.ResponseMessage;
 import com.westee.cake.entity.ShoppingCartData;
 import com.westee.cake.generate.ShoppingCart;
 import com.westee.cake.service.ShoppingCartService;
@@ -40,11 +39,11 @@ public class ShoppingCartController {
             @RequestParam(name = "pageSize", required = false, defaultValue = "10") int pageSize,
             @RequestParam(name = "pageNum", required = false, defaultValue = "1") int pageNum,
             @RequestHeader("Token") String token) {
-        if(Objects.nonNull(token) && token.length() != 0) {
+        if (Objects.nonNull(token) && token.length() != 0) {
             Long userId = userService.getUserByToken(token).getId();
             return shoppingCartService.getShoppingCartOfUser(pageNum, pageSize, userId);
         } else {
-            return PageResponse.pageData(0,0,0, new ArrayList<>());
+            return PageResponse.pageData(0, 0, 0, new ArrayList<>());
         }
     }
 
@@ -52,7 +51,7 @@ public class ShoppingCartController {
     public Response<ShoppingCartData> getShoppingCart(@RequestBody AddToShoppingCartRequest request,
                                                       @RequestHeader("Token") String token) {
         Long userId = userService.getUserByToken(token).getId();
-        return Response.of(shoppingCartService.addGoodsToShoppingCart(request, userId));
+        return Response.ok(shoppingCartService.addGoodsToShoppingCart(request, userId));
     }
 
     @DeleteMapping("shoppingCart/{goodsId}")
@@ -66,11 +65,12 @@ public class ShoppingCartController {
     public Response<Long> getCountByGoodsId(@PathVariable("goodsId") long goodsId,
                                             @RequestHeader("Token") String token) {
         long count = 0;
-        if(Objects.nonNull(token) ) {
+        System.out.println("token" + token);
+        if (Objects.nonNull(token) && !"".equals(token)) {
             Long userId = userService.getUserByToken(token).getId();
             count = shoppingCartService.countByGoodsIdAndUserId(goodsId, userId);
         }
-        return Response.of(ResponseMessage.OK.toString(), count);
+        return Response.ok(count);
     }
 
     @PatchMapping("shoppingCart/{shoppingCartId}/{number}")
@@ -78,8 +78,7 @@ public class ShoppingCartController {
                                                            @PathVariable("number") int number,
                                                            @RequestHeader("Token") String token) {
         Long userId = userService.getUserByToken(token).getId();
-        return Response.of(ResponseMessage.OK.toString(),
-                shoppingCartService.updateShoppingCartGoodsNumber(shoppingCartId, number, userId));
+        return Response.ok(shoppingCartService.updateShoppingCartGoodsNumber(shoppingCartId, number, userId));
     }
 
 }
