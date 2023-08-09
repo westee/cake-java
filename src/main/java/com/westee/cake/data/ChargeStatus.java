@@ -2,6 +2,7 @@ package com.westee.cake.data;
 
 public enum ChargeStatus {
     OK(),
+    WAIT(),
     FAIL();
 
     public String getName() {
