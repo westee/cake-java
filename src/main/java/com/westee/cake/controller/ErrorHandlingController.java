@@ -1,10 +1,15 @@
 package com.westee.cake.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.westee.cake.entity.Response;
 import com.westee.cake.exceptions.HttpException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartException;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -26,5 +31,14 @@ public class ErrorHandlingController {
     Response<?> onError(HttpServletResponse response, HttpException e) {
         response.setStatus(e.getStatusCode());
         return Response.of(e.getMessage(), null);
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<String> handleMultipartException(MultipartException e) throws JsonProcessingException {
+        Response<Object> response = Response.of("文件大小超过限制", null);
+        ObjectMapper objectMapper = new ObjectMapper();
+        String s = objectMapper.writeValueAsString(response);
+        System.out.println(s);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(s);
     }
 }
