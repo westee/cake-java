@@ -11,6 +11,7 @@ public class WeChatConfig {
     private String appid;
     private String secret;
     private String mchid;
+    private String serial_no;
 
     public String getAppid() {
         return appid;
@@ -34,5 +35,13 @@ public class WeChatConfig {
 
     public void setMchid(String mchid) {
         this.mchid = mchid;
+    }
+
+    public String getSerial_no() {
+        return serial_no;
+    }
+
+    public void setSerial_no(String serial_no) {
+        this.serial_no = serial_no;
     }
 }
