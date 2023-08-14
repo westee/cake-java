@@ -9,10 +9,12 @@ import com.westee.cake.generate.Cake;
 import com.westee.cake.generate.CakeExample;
 import com.westee.cake.generate.CakeMapper;
 import com.westee.cake.generate.CakeTagMapping;
+import com.westee.cake.generate.CakeTagMappingExample;
 import com.westee.cake.generate.CakeTagMappingMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,7 +28,7 @@ public class CakeService {
 
     @Autowired
     public CakeService(CakeMapper cakeMapper, RoleService roleService, CakeTagMappingMapper cakeTagMappingMapper,
-                        MyCakeWithTagMapper myCakeWithTagMapper) {
+                       MyCakeWithTagMapper myCakeWithTagMapper) {
         this.cakeMapper = cakeMapper;
         this.roleService = roleService;
         this.cakeTagMappingMapper = cakeTagMappingMapper;
@@ -47,6 +49,35 @@ public class CakeService {
         }).collect(Collectors.toList());
 
         return PageResponse.pageData(pageNum, pageSize, totalPage, collect);
+    }
+
+    public PageResponse<CakeWithTag> getCakeByCakeTag(Integer pageNum, Integer pageSize, Integer categoryId) {
+        CakeTagMappingExample cakeTagMappingExample = new CakeTagMappingExample();
+        cakeTagMappingExample.createCriteria().andTagIdEqualTo(String.valueOf(categoryId));
+        PageHelper.startPage(pageNum, pageSize);
+        List<CakeTagMapping> cakeTagMappings = cakeTagMappingMapper.selectByExample(cakeTagMappingExample);
+        ArrayList<Cake> cakes = new ArrayList<>();
+        cakeTagMappings.forEach(cakeTagMapping -> cakes.add(cakeMapper.selectByPrimaryKey(Long.valueOf(cakeTagMapping.getCakeId()))));
+
+        long count = cakeTagMappingMapper.countByExample(cakeTagMappingExample);
+        long totalPage = count % pageSize == 0 ? count / pageSize : count / pageSize + 1;
+
+        List<CakeWithTag> collect = cakes.stream().map(cake -> {
+            Long id = cake.getId();
+            return myCakeWithTagMapper.selectCakeWithTagsByCakeId(id);
+        }).collect(Collectors.toList());
+
+        return PageResponse.pageData(pageNum, pageSize, totalPage, collect);
+    }
+
+    public PageResponse<CakeWithTag> getCakeByCakeName(Integer pageNum, Integer pageSize, String keyword) {
+        // 计算分页偏移量
+        int offset = (pageNum - 1) * pageSize;
+        Integer count = myCakeWithTagMapper.countByNameLike(keyword);
+        int totalPage = count % pageSize == 0 ? count / pageSize : count / pageSize + 1;
+        List<CakeWithTag> cakeWithTags = myCakeWithTagMapper.selectByNameLike(keyword, pageSize, offset);
+
+        return PageResponse.pageData(pageNum, pageSize, totalPage, cakeWithTags);
     }
 
     public Cake insertCake(CakeWithTag cake, long roleId) {
@@ -89,6 +120,6 @@ public class CakeService {
     }
 
     private void checkAuthorization(long roleId) {
-        if(!"admin".equals(roleService.getUserRoleById(roleId).getName())) throw HttpException.forbidden("没有权限");
+        if (!"admin".equals(roleService.getUserRoleById(roleId).getName())) throw HttpException.forbidden("没有权限");
     }
 }

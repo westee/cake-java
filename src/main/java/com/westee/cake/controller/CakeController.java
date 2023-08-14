@@ -31,8 +31,16 @@ public class CakeController {
 
     @GetMapping("cake")
     public PageResponse<CakeWithTag> getCakeList(@RequestParam(name = "pageNum", required = false, defaultValue = "1") Integer pageNum,
-                                          @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer pageSize) {
-        return cakeService.getCakeList(pageNum, pageSize);
+                                                 @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer pageSize,
+                                                 @RequestParam(name = "categoryId", required = false) Integer categoryId,
+                                                 @RequestParam(name = "name", required = false) String name) {
+        if (categoryId != null) { // categoryId参数已传递
+            return cakeService.getCakeByCakeTag(pageNum, pageSize, categoryId);
+        }if (name != null) { // categoryId参数已传递
+            return cakeService.getCakeByCakeName(pageNum, pageSize, name);
+        } else {
+            return cakeService.getCakeList(pageNum, pageSize);
+        }
     }
 
     @PostMapping("cake")

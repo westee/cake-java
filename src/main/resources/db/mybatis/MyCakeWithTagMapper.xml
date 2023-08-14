@@ -23,4 +23,20 @@
           AND c.DELETED = 0;
     </select>
 
+    <select id="selectByNameLike" resultMap="cakeWithTag">
+        SELECT c.ID, c.NAME, c.IMG_URL, c.DELETED, c.CREATED_AT, c.UPDATED_AT, ct.ID AS TAG_ID, ct.NAME AS TAG_NAME
+        FROM CAKE c
+                 LEFT JOIN CAKE_TAG_MAPPING ctm ON c.ID = ctm.CAKE_ID AND ctm.DELETED = 0
+                 LEFT JOIN CAKE_TAG ct ON ct.ID = ctm.TAG_ID AND ct.DELETED = 0
+        WHERE c.NAME LIKE CONCAT('%', #{name}, '%')
+          AND c.DELETED = 0
+            LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="countByNameLike" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM CAKE
+        WHERE NAME LIKE CONCAT('%', #{name}, '%')
+    </select>
+
 </mapper>
