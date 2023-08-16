@@ -87,6 +87,28 @@ public class CakeService {
         cake.setDeleted(false);
         cakeMapper.insert(cake);
 
+        insertCakeTagMapping(cake);
+        return cake;
+    }
+
+    public Cake updateCake(CakeWithTag cake, long roleId) {
+        checkAuthorization(roleId);
+        cake.setUpdatedAt(new Date());
+        cakeMapper.updateByPrimaryKeySelective(cake);
+
+        // 删除旧的cake tag mapping
+        CakeTagMappingExample cakeTagMappingExample = new CakeTagMappingExample();
+        cakeTagMappingExample.createCriteria().andCakeIdEqualTo(String.valueOf(cake.getId()));
+        cakeTagMappingMapper.deleteByExample(cakeTagMappingExample);
+
+        // 插入新的cake tag mapping
+        insertCakeTagMapping(cake);
+
+        return cake;
+    }
+
+    public void insertCakeTagMapping (CakeWithTag cake) {
+        // 插入新的cake tag mapping
         cake.getTags().forEach(tag -> {
             CakeTagMapping cakeTagMapping = new CakeTagMapping();
             cakeTagMapping.setCakeId(cake.getId().toString());
@@ -96,16 +118,6 @@ public class CakeService {
             cakeTagMapping.setUpdatedAt(new Date());
             cakeTagMappingMapper.insert(cakeTagMapping);
         });
-
-        return cake;
-    }
-
-    public Cake updateCake(Cake cake, long roleId) {
-        checkAuthorization(roleId);
-
-        cake.setUpdatedAt(new Date());
-        cakeMapper.updateByPrimaryKeySelective(cake);
-        return cake;
     }
 
     public Cake deleteCakeByCakeId(long cakeId, long roleId) {

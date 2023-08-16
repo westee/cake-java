@@ -51,7 +51,7 @@ public class CakeController {
     }
 
     @PatchMapping("cake")
-    public Response<Cake> patchCake(@RequestBody Cake cake,
+    public Response<Cake> patchCake(@RequestBody CakeWithTag cake,
                                     @RequestHeader("Token") String token) {
         Long roleId = userService.getUserByToken(token).getRoleId();
         return Response.ok(cakeService.updateCake(cake, roleId));
