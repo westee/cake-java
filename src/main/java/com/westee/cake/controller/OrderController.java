@@ -1,8 +1,9 @@
 package com.westee.cake.controller;
 
-import com.westee.cake.data.DataStatus;
 import com.westee.cake.data.OrderInfo;
+import com.westee.cake.entity.OrderPickupStatus;
 import com.westee.cake.entity.OrderResponse;
+import com.westee.cake.entity.OrderStatus;
 import com.westee.cake.entity.PageResponse;
 import com.westee.cake.entity.Response;
 import com.westee.cake.entity.ResponseMessage;
@@ -47,11 +48,11 @@ public class OrderController {
                                                 @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer pageSize,
                                                 @RequestParam(value = "status", required = false) String status,
                                                 @RequestHeader("Token") String token) {
-        if (status != null && DataStatus.fromStatus(status) == null) {
+        if (status != null && OrderStatus.fromStatus(status) == null) {
             throw HttpException.badRequest("非法status: " + status);
         }
         Long userId = userService.getUserByToken(token).getId();
-        return orderService.getOrder(userId, pageNum, pageSize, DataStatus.fromStatus(status));
+        return orderService.getOrder(userId, pageNum, pageSize, OrderStatus.fromStatus(status));
     }
 
     /**
@@ -74,10 +75,13 @@ public class OrderController {
     @PostMapping("/order")
     public Response<OrderResponse> createOrder(@RequestBody OrderInfo orderInfo,
                                                @RequestParam(required = false) Long couponId,
+                                               @RequestParam(required = false) String payType,
+                                               @RequestParam(required = false) String pickupStatus,
                                                @RequestHeader("Token") String token) throws RuntimeException {
-        orderService.deductStock(orderInfo);
+//        orderService.deductStock(orderInfo);
         Long userId = userService.getUserByToken(token).getId();
-        return Response.of(ResponseMessage.OK.toString(), orderService.createOrder(orderInfo, userId, couponId));
+        return Response.of(ResponseMessage.OK.toString(), orderService.createOrder(orderInfo, userId, couponId,
+                OrderService.PayType.fromString(payType), OrderPickupStatus.fromString(pickupStatus)));
     }
 
     /**
@@ -88,7 +92,8 @@ public class OrderController {
      * @return 更新后的订单
      */
     @RequestMapping(value = "/order/{id}", method = {RequestMethod.POST, RequestMethod.PATCH})
-    public Response<OrderResponse> updateOrder(@PathVariable("id") long id, @RequestBody OrderTable order,
+    public Response<OrderResponse> updateOrder(@PathVariable("id") long id,
+                                               @RequestBody OrderTable order,
                                                @RequestHeader("Token") String token) {
         order.setId(id);
         Long userId = userService.getUserByToken(token).getId();

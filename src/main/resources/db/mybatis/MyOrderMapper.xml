@@ -50,4 +50,16 @@
         ORDER BY CREATED_AT DESC
         limit #{start}, #{offset}
     </select>
+    <select id="selectOrderAmountByDate" resultType="java.math.BigDecimal">
+        SELECT IFNULL(SUM(TOTAL_PRICE), 0)  FROM ORDER_TABLE
+        WHERE CREATED_AT BETWEEN #{startOfDay} AND #{endOfDay}
+    </select>
+    <select id="selectChargeAmountByDate" resultType="java.math.BigDecimal">
+        SELECT IFNULL(SUM(AMOUNT), 0)  FROM CHARGE
+        WHERE CREATED_AT BETWEEN #{startOfDay} AND #{endOfDay}
+    </select>
+    <select id="selectOrderCountByDate" resultType="int">
+        SELECT COUNT(*) FROM ORDER_TABLE
+        WHERE CREATED_AT BETWEEN #{startOfDay} AND #{endOfDay}
+    </select>
 </mapper>
