@@ -16,7 +16,6 @@ import com.westee.cake.generate.GoodsImageMapper;
 import com.westee.cake.generate.GoodsMapper;
 import com.westee.cake.generate.Shop;
 import com.westee.cake.generate.ShopMapper;
-import com.westee.cake.generate.User;
 import com.westee.cake.mapper.MyGoodsMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -85,8 +84,8 @@ public class GoodsService {
         return goodsWithImage;
     }
 
-    public GoodsWithImages createGoods(GoodsWithImages goods) {
-        checkGoodsBelongToUser(goods);
+    public GoodsWithImages createGoods(GoodsWithImages goods, long userId) {
+        checkGoodsBelongToUser(goods, userId);
         goods.setCreatedAt(new Date());
         goods.setUpdatedAt(new Date());
         goods.setStatus(GoodsStatus.OK.getName());
@@ -110,8 +109,8 @@ public class GoodsService {
         });
     }
 
-    public GoodsWithImages updateGoods(GoodsWithImages goods) {
-        checkGoodsBelongToUser(goods);
+    public GoodsWithImages updateGoods(GoodsWithImages goods, Long userId) {
+        checkGoodsBelongToUser(goods, userId);
         goods.setUpdatedAt(new Date());
         goods.setCreatedAt(new Date());
         goodsMapper.updateByPrimaryKeySelective(goods);
@@ -119,10 +118,10 @@ public class GoodsService {
         return myGoodsWithImageMapper.getGoodsWithImage(goods.getId());
     }
 
-    public Goods deleteGoods(Long goodsId) {
+    public Goods deleteGoods(Long goodsId, Long userId) {
         Goods goods = new Goods();
         goods.setId(goodsId);
-        checkGoodsBelongToUser(goods);
+        checkGoodsBelongToUser(goods, userId);
         goods.setStatus(GoodsStatus.DELETED.getName());
         goods.setUpdatedAt(new Date());
         goods.setCreatedAt(new Date());
@@ -216,11 +215,8 @@ public class GoodsService {
         return isLegal;
     }
 
-    public void checkGoodsBelongToUser(Goods goods) {
+    public void checkGoodsBelongToUser(Goods goods, Long userId) {
         // 根据goods的shop查询当前用户是不是店铺的拥有者
-        User sessionUser = UserService.getSessionUser();
-        Long userId = sessionUser.getId();
-
         Long goodsId = goods.getId();
         Goods goodsResult;
         Shop shopResult;

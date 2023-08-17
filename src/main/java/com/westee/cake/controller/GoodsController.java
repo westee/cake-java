@@ -6,6 +6,7 @@ import com.westee.cake.entity.Response;
 import com.westee.cake.entity.ResponseMessage;
 import com.westee.cake.generate.Goods;
 import com.westee.cake.service.GoodsService;
+import com.westee.cake.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,10 +16,12 @@ import java.util.List;
 @RequestMapping("api/v1/")
 public class GoodsController {
     private final GoodsService goodsService;
+    private final UserService userService;
 
     @Autowired
-    public GoodsController(GoodsService goodsService) {
+    public GoodsController(GoodsService goodsService, UserService userService) {
         this.goodsService = goodsService;
+        this.userService = userService;
     }
 
     @GetMapping("/goods")
@@ -38,23 +41,30 @@ public class GoodsController {
     }
 
     @GetMapping("/goods/{goodsId}")
-    public Response<Goods> getShopByShopId(@PathVariable(name = "goodsId") long goodsId) {
+    public Response<Goods> getShopByShopId(@PathVariable(name = "goodsId") long goodsId,
+                                           @RequestHeader("Token") String token) {
         return Response.of(ResponseMessage.OK.toString(), goodsService.getGoodsByGoodsId(goodsId));
     }
 
     @PostMapping("/goods")
-    public Response<Goods> createGoods(@RequestBody GoodsWithImages goods) {
-        return Response.of(ResponseMessage.OK.toString(), goodsService.createGoods(goods));
+    public Response<Goods> createGoods(@RequestBody GoodsWithImages goods,
+                                       @RequestHeader("Token") String token) {
+        Long userId = userService.getUserByToken(token).getId();
+        return Response.of(ResponseMessage.OK.toString(), goodsService.createGoods(goods, userId));
     }
 
     @DeleteMapping("/goods/{goodsId}")
-    public Response<Goods> deleteGoods(@PathVariable Long goodsId) {
-        return Response.of(ResponseMessage.OK.toString(), goodsService.deleteGoods(goodsId));
+    public Response<Goods> deleteGoods(@PathVariable Long goodsId,
+                                       @RequestHeader("Token") String token) {
+        Long userId = userService.getUserByToken(token).getId();
+        return Response.of(ResponseMessage.OK.toString(), goodsService.deleteGoods(goodsId, userId));
     }
 
     @PatchMapping("/goods")
-    public Response<GoodsWithImages> updateGoods(@RequestBody GoodsWithImages goods) {
-        return Response.of(ResponseMessage.OK.toString(), goodsService.updateGoods(goods));
+    public Response<GoodsWithImages> updateGoods(@RequestBody GoodsWithImages goods,
+                                                 @RequestHeader("Token") String token) {
+        Long userId = userService.getUserByToken(token).getId();
+        return Response.of(ResponseMessage.OK.toString(), goodsService.updateGoods(goods, userId));
     }
 
     @GetMapping("/goods/search")
