@@ -109,7 +109,7 @@ public class CouponService {
         List<UserCoupon> userCoupons = userCouponMapper.selectByExample(userCouponExample);
 
         List<Long> couponIdList = userCoupons.stream()
-                .map(UserCoupon::getId)
+                .map(UserCoupon::getCouponId)
                 .collect(Collectors.toList());
         if (couponIdList.isEmpty()) {
             return 0;
