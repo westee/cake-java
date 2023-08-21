@@ -104,8 +104,7 @@ public class OrderService {
      * @throws RuntimeException     支付错误
      */
     @Transactional
-    public OrderResponseWithPayInfo createOrder(OrderInfo orderInfo, Long userId, Long couponId, PayType payType,
-                                                OrderPickupStatus pickupStatus) throws RuntimeException {
+    public OrderResponseWithPayInfo createOrder(OrderInfo orderInfo, OrderTable requestOrder, Long userId, Long couponId) throws RuntimeException {
 
         Map<Long, Goods> idToGoodsMap = getIdTOGoodsMap(orderInfo.getGoods());
         BigDecimal totalPriceBeforeCoupon = calculateTotalPrice(orderInfo, idToGoodsMap);
@@ -117,7 +116,7 @@ public class OrderService {
         BigDecimal totalPrice = Objects.isNull(couponId) ? totalPriceBeforeCoupon : useCoupon(userId, couponId, totalPriceBeforeCoupon);
 
         // 扣款
-        if (Objects.equals(payType.getName(), PayType.BALANCE.getName())) {  // 余额支付
+        if (Objects.equals(requestOrder.getPayType(), PayType.BALANCE.getName())) {  // 余额支付
             deductUserMoney(userId, totalPrice);
         } else {    //  微信支付
             String detail = idToGoodsMap.values().stream().map(Goods::getName).collect(Collectors.joining(","));
@@ -144,7 +143,7 @@ public class OrderService {
         // 扣减库存
         deductStock(orderInfo);
 
-        OrderTable createdOrder = createdOrderViaRpc(orderInfo, idToGoodsMap, userId, orderNo, payType, pickupStatus);
+        OrderTable createdOrder = createdOrderViaRpc(orderInfo, requestOrder, idToGoodsMap, userId, orderNo);
         return new OrderResponseWithPayInfo(generateResponse(createdOrder, idToGoodsMap, orderInfo.getGoods()));
     }
 
@@ -202,25 +201,28 @@ public class OrderService {
      * @param userId        用户id
      * @return              OrderTable
      */
-    private OrderTable createdOrderViaRpc(OrderInfo orderInfo, Map<Long, Goods> idToGoodsMap, long userId,
-                                          String orderNo, PayType payType, OrderPickupStatus pickupStatus) {
+    private OrderTable createdOrderViaRpc(OrderInfo orderInfo, OrderTable orderTable, Map<Long, Goods> idToGoodsMap,
+                                          long userId, String orderNo) {
         OrderTable order = new OrderTable();
-
-        order.setPayType(payType.getName());
-        order.setPickupType(pickupStatus.getValue());
+        String payType = orderTable.getPayType();
+        PayType.isInMyEnum(payType);
+        order.setPayType(payType);
+        order.setPickupType(orderTable.getPickupType());
         order.setWxOrderNo(orderNo);
         order.setUserId(userId);
         order.setStatus(OrderStatus.PENDING.getName());
+        order.setPhone(orderTable.getPhone());
+        order.setPickUpTime(Objects.isNull(orderTable.getPickUpTime()) ? new Date() : orderTable.getPickUpTime());
 
 
-        if(PayType.MINIAPP.getName().equals(payType.getName())) { // 微信支付先设置成等待确认付款状态 在回调中设置为已支付
+        if(PayType.MINIAPP.getName().equals(payType)) { // 微信支付先设置成等待确认付款状态 在回调中设置为已支付
             order.setStatus(OrderStatus.UNPAID.getName());
         } else {
             order.setStatus(OrderStatus.PAID.getName());
         }
 
         // 外送需要地址
-        if (Objects.equals(pickupStatus.getName(), OrderPickupStatus.EXPRESS.getName())) {
+        if (Objects.equals(orderTable.getPickupType(), OrderPickupStatus.EXPRESS.getValue())) {
             if (Objects.isNull(addressMapper.selectByPrimaryKey(orderInfo.getAddressId()))) {
                 throw HttpException.badRequest("地址不存在");
             }
@@ -662,7 +664,7 @@ public class OrderService {
         BALANCE,
         MINIAPP;
 
-        public Boolean isInMyEnum(String value) {
+        public static Boolean isInMyEnum(String value) {
             try {
                 PayType myEnum = PayType.valueOf(value);
                 return true;

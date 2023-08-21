@@ -1,7 +1,6 @@
 package com.westee.cake.controller;
 
 import com.westee.cake.data.OrderInfo;
-import com.westee.cake.entity.OrderPickupStatus;
 import com.westee.cake.entity.OrderResponse;
 import com.westee.cake.entity.OrderStatus;
 import com.westee.cake.entity.PageResponse;
@@ -69,19 +68,43 @@ public class OrderController {
     }
 
     /**
-     * @param orderInfo 订单信息
+     * @param orderInfoAndOrderTable orderInfo 订单信息 orderTable 订单row
      * @return 响应
      */
     @PostMapping("/order")
-    public Response<OrderResponse> createOrder(@RequestBody OrderInfo orderInfo,
+    public Response<OrderResponse> createOrder(@RequestBody OrderInfoAndOrderTable orderInfoAndOrderTable,
                                                @RequestParam(required = false) Long couponId,
-                                               @RequestParam(required = false) String payType,
-                                               @RequestParam(required = false) String pickupStatus,
                                                @RequestHeader("Token") String token) throws RuntimeException {
 //        orderService.deductStock(orderInfo);
         Long userId = userService.getUserByToken(token).getId();
-        return Response.of(ResponseMessage.OK.toString(), orderService.createOrder(orderInfo, userId, couponId,
-                OrderService.PayType.fromString(payType), OrderPickupStatus.fromString(pickupStatus)));
+        return Response.of(ResponseMessage.OK.toString(), orderService.createOrder(
+                orderInfoAndOrderTable.getOrderInfo(),
+                orderInfoAndOrderTable.getOrderTable(), userId, couponId
+                 ));
+    }
+
+    public static class OrderInfoAndOrderTable {
+        OrderInfo orderInfo;
+        OrderTable orderTable;
+
+        public OrderInfoAndOrderTable() {
+        }
+
+        public OrderInfo getOrderInfo() {
+            return orderInfo;
+        }
+
+        public void setOrderInfo(OrderInfo orderInfo) {
+            this.orderInfo = orderInfo;
+        }
+
+        public OrderTable getOrderTable() {
+            return orderTable;
+        }
+
+        public void setOrderTable(OrderTable orderTable) {
+            this.orderTable = orderTable;
+        }
     }
 
     /**
