@@ -65,7 +65,6 @@ public class ShoppingCartController {
     public Response<Long> getCountByGoodsId(@PathVariable("goodsId") long goodsId,
                                             @RequestHeader("Token") String token) {
         long count = 0;
-        System.out.println("token" + token);
         if (Objects.nonNull(token) && !"".equals(token)) {
             Long userId = userService.getUserByToken(token).getId();
             count = shoppingCartService.countByGoodsIdAndUserId(goodsId, userId);
@@ -78,7 +77,7 @@ public class ShoppingCartController {
                                                            @PathVariable("number") int number,
                                                            @RequestHeader("Token") String token) {
         Long userId = userService.getUserByToken(token).getId();
-        return Response.ok(shoppingCartService.updateShoppingCartGoodsNumber(shoppingCartId, number, userId));
+        return Response.ok(shoppingCartService.updateShoppingCartGoodsNumber(shoppingCartId, number));
     }
 
 }

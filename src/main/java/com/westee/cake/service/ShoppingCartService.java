@@ -57,7 +57,7 @@ public class ShoppingCartService {
     /**
      * 将同一个shop下的多条goods记录放到同一个ShoppingCartData的goods List中
      *
-     * @param shoppingCartData      待处理购物车数据列表
+     * @param shoppingCartData 待处理购物车数据列表
      * @return ShoppingCartData     处理好的购物车数据列表
      */
     private ShoppingCartData merge(List<ShoppingCartData> shoppingCartData) {
@@ -76,7 +76,8 @@ public class ShoppingCartService {
 
     /**
      * 将多个相同的goodsId合并成一个，并修改number
-     * @param goodsList                 同一个店铺下的购物车中的商品
+     *
+     * @param goodsList 同一个店铺下的购物车中的商品
      * @return List<ShoppingCartGoods>  将多个相同商品合并为一个
      */
     private List<ShoppingCartGoods> mergeRepeatGoods(List<ShoppingCartGoods> goodsList) {
@@ -116,10 +117,12 @@ public class ShoppingCartService {
             // 查找数据库中是否有要插入的商品
             List<ShoppingCart> shoppingCarts = shoppingCartMapper.selectByExample(shoppingCartExample);
             if (shoppingCarts.isEmpty()) {
+                checkStock(cart);
                 rowsToInsert.add(cart);
             } else {
                 ShoppingCart existingRow = shoppingCarts.get(0);
                 existingRow.setNumber(existingRow.getNumber() + cart.getNumber());
+                checkStock(existingRow);
                 rowsToUpdate.add(existingRow);
             }
         }
@@ -136,6 +139,16 @@ public class ShoppingCartService {
         }
 
         return getLatestShoppingCartDataByUserIdShopId(new ArrayList<>(goodsToMapByGoodsIds.values()).get(0).getShopId(), userId);
+    }
+
+    public void checkStock(ShoppingCart cart) {
+        int requestedQuantity = cart.getNumber();
+        int availableQuantity = goodsService.getGoodsByGoodsId(cart.getGoodsId()).getStock();
+
+        if (requestedQuantity > availableQuantity) {
+            throw HttpException.badRequest("库存不足"); // + goodsService.getGoodsByGoodsId(cart.getGoodsId()).getName()
+        }
+
     }
 
     private ShoppingCartData getLatestShoppingCartDataByUserIdShopId(long shopId, long userId) {
@@ -163,17 +176,17 @@ public class ShoppingCartService {
         ShoppingCartExample shoppingCartExample = new ShoppingCartExample();
         shoppingCartExample.createCriteria().andGoodsIdEqualTo(goodsId).andUserIdEqualTo(userId);
         List<ShoppingCart> shoppingCarts = shoppingCartMapper.selectByExample(shoppingCartExample);
-        if(shoppingCarts.size() == 0) {
+        if (shoppingCarts.size() == 0) {
             return 0;
         } else {
             return shoppingCarts.get(0).getNumber();
         }
     }
 
-    public ShoppingCart updateShoppingCartGoodsNumber(long shoppingCartId, int number, long userId) {
+    public ShoppingCart updateShoppingCartGoodsNumber(long shoppingCartId, int number) {
         ShoppingCart shoppingCart = shoppingCartMapper.selectByPrimaryKey(shoppingCartId);
         Goods goodsByGoodsId = goodsService.getGoodsByGoodsId(shoppingCart.getGoodsId());
-        if(number > goodsByGoodsId.getStock() || number <= 0) {
+        if (number > goodsByGoodsId.getStock() || number <= 0) {
             throw HttpException.badRequest("数量超过限制");
         } else {
             shoppingCart.setNumber(number);
