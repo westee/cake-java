@@ -2,7 +2,7 @@ package com.westee.cake.entity;
 
 public class Result <T>{
     String status;
-    String msg;
+    String message;
     T data;
 
     public Result(String status, String msg) {
@@ -11,7 +11,7 @@ public class Result <T>{
 
     public Result(String status, String msg,  T data) {
         this.status = status;
-        this.msg = msg;
+        this.message = msg;
         this.data = data;
     }
 
@@ -23,12 +23,12 @@ public class Result <T>{
         this.status = status;
     }
 
-    public String getMsg() {
-        return msg;
+    public String getMessage() {
+        return message;
     }
 
-    public void setMsg(String msg) {
-        this.msg = msg;
+    public void setMessage(String msg) {
+        this.message = msg;
     }
 
     public T getData() {
