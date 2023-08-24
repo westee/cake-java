@@ -27,7 +27,7 @@ public class SwiperController {
     }
 
     @GetMapping("/swiper")
-    public Response<List<Swiper>> getShop(@RequestParam(name = "type", defaultValue = "index", required = false) String type) {
+    public Response<List<Swiper>> getShop(@RequestParam(name = "type", required = false) String type) {
         return Response.ok(swiperService.getSwiperByType(type));
     }
 

@@ -20,7 +20,10 @@ public class SwiperService {
 
     public List<Swiper> getSwiperByType(String type) {
         SwiperExample swiperExample = new SwiperExample();
-        swiperExample.createCriteria().andSwiperTypeEqualTo(type).andEnabledEqualTo(true);
+        SwiperExample.Criteria criteria = swiperExample.createCriteria().andEnabledEqualTo(true);
+        if (type != null && !type.isEmpty()) {
+            criteria.andSwiperTypeEqualTo(type);
+        }
         return swiperMapper.selectByExample(swiperExample);
     }
 
