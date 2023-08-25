@@ -10,9 +10,9 @@ public class GoodsWithImages extends Goods {
     List<String> images;
 
     public GoodsWithImages(Long id, Long categoryId, String name, String description, String imgUrl, BigDecimal price,
-                           BigDecimal vipPrice, Integer stock, String status, Date createdAt, Date updatedAt,
-                           Long shopId, String details, List<String> images) {
-        super(id, categoryId, name, description, imgUrl, price, vipPrice, stock, status, createdAt, updatedAt, shopId, details);
+                           BigDecimal vipPrice, Long shopId, Integer stock, String status, Date createdAt,
+                           Date updatedAt, String details, List<String> images) {
+        super(id, categoryId, name, description, imgUrl, price, vipPrice, shopId, stock, status, createdAt, updatedAt, details);
         this.images = images;
     }
 

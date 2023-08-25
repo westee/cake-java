@@ -35,6 +35,10 @@ public class HttpException extends RuntimeException{
     public HttpException() {
     }
 
+    public static Exception success(String message) {
+        return new HttpException(HttpStatus.OK.value(), message);
+    }
+
     public int getStatusCode() {
         return statusCode;
     }

@@ -49,7 +49,6 @@ public class JWTRealm extends AuthorizingRealm {
         log.info("---------------- 用户 jwt ----------------------");
         UsernamePasswordToken token = (UsernamePasswordToken) auth;
         String name = token.getUsername();
-        System.out.println(name);
         // 从数据库获取对应用户名密码的用户
         User user = userService.getUserByName(name);
         if (user != null) {

@@ -1,17 +1,17 @@
 package com.westee.cake.entity;
 
 public class WeChatSession {
-    private String errcode;
+    private Integer errcode;
     private String errmsg;
     private String openid;
     private String session_key;
     private String unionid;
 
-    public String getErrcode() {
+    public Integer getErrcode() {
         return errcode;
     }
 
-    public void setErrcode(String errcode) {
+    public void setErrcode(Integer errcode) {
         this.errcode = errcode;
     }
 

@@ -27,6 +27,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -72,9 +73,15 @@ public class AuthController {
         userService.createUserIfNotExist(usernameAndPassword);
     }
 
+    /**
+     *
+     * @param params {wxcode, avatar, name}
+     * @return
+     * @throws JsonProcessingException
+     */
     @GetMapping("/send-wxcode")
-    public LoginResult sendWXCode(String wxcode) throws JsonProcessingException {
-        WeChatSession session = userService.getWeChatSession(wxcode);
+    public LoginResult sendWXCode(@RequestParam Map<String, String> params) throws JsonProcessingException {
+        WeChatSession session = userService.getWeChatSession(params);
         String openid = session.getOpenid();
         UserToken token = new UserToken(LoginType.WECHAT_LOGIN, openid,
                 openid, openid);

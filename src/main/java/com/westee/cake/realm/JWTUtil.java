@@ -18,7 +18,7 @@ import java.util.Date;
  */
 
 public class JWTUtil {
-    private static final long EXPIRATION_TIME = 7 * 24 * 60 * 60 * 1000; // 7天
+    private static final long EXPIRATION_TIME = 30L * 24 * 60 * 60 * 1000; // 30天
     private static final String ISSUER = "my_issuer"; // JWT签发者
     private static final String secret = "my_secret"; //JWT密钥
     private static final String MY_TYPE = "my-token-type"; //JWT密钥
