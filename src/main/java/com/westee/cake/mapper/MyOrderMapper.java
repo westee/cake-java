@@ -16,7 +16,7 @@ public interface MyOrderMapper {
 
     List<GoodsInfo> getGoodsInfoOfOrder(long orderId);
 
-    List<OrderTable> getOrderList(String status, long userId, int start, int offset,@Param("roleName") String roleName);
+    List<OrderTable> getOrderList(String status,Byte pickupType, long userId, int start, int offset,@Param("roleName") String roleName);
 
     BigDecimal selectOrderAmountByDate(LocalDateTime startOfDay, LocalDateTime endOfDay);
 

@@ -46,12 +46,13 @@ public class OrderController {
     public PageResponse<OrderResponse> getOrder(@RequestParam(name = "pageNum", required = false, defaultValue = "1") Integer pageNum,
                                                 @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer pageSize,
                                                 @RequestParam(value = "status", required = false) String status,
+                                                @RequestParam(value = "pickupType", required = false) Byte pickupType,
                                                 @RequestHeader("Token") String token) {
         if (status != null && OrderStatus.fromStatus(status) == null) {
             throw HttpException.badRequest("非法status: " + status);
         }
         Long userId = userService.getUserByToken(token).getId();
-        return orderService.getOrder(userId, pageNum, pageSize, OrderStatus.fromStatus(status));
+        return orderService.getOrder(userId, pageNum, pageSize, OrderStatus.fromStatus(status), pickupType);
     }
 
     /**
@@ -68,6 +69,25 @@ public class OrderController {
     }
 
     /**
+     * 此接口给管理员使用进行退款
+     * 余额支付直接操作数据库退回余额
+     * 微信支付退款则先发起请求，在成功的回调中处理数据
+     *
+     * @param orderTradeNo
+     * @param orderId
+     * @param token
+     * @return
+     */
+    @GetMapping("/order/refund")
+    public Response<String> doOrderRefundByTradeNo(@RequestParam("orderTradeNo") String orderTradeNo,
+                                                   @RequestParam("orderId") Long orderId,
+                                                   @RequestHeader("Token") String token) {
+        Long userId = userService.getUserByToken(token).getId();
+        orderService.adminConfirmRefund(userId, orderTradeNo, orderId, false);
+        return Response.ok("");
+    }
+
+    /**
      * @param orderInfoAndOrderTable orderInfo 订单信息 orderTable 订单row
      * @return 响应
      */
@@ -75,7 +95,6 @@ public class OrderController {
     public Response<OrderResponse> createOrder(@RequestBody OrderInfoAndOrderTable orderInfoAndOrderTable,
                                                @RequestParam(required = false) Long couponId,
                                                @RequestHeader("Token") String token) throws RuntimeException {
-//        orderService.deductStock(orderInfo);
         Long userId = userService.getUserByToken(token).getId();
         return Response.of(ResponseMessage.OK.toString(), orderService.createOrder(
                 orderInfoAndOrderTable.getOrderInfo(),

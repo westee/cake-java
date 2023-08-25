@@ -3,6 +3,7 @@ package com.westee.cake.service;
 import com.wechat.pay.java.core.exception.MalformedMessageException;
 import com.wechat.pay.java.core.exception.ServiceException;
 import com.wechat.pay.java.service.payments.jsapi.model.PrepayWithRequestPaymentResponse;
+import com.wechat.pay.java.service.refund.model.Amount;
 import com.wechat.pay.java.service.refund.model.Refund;
 import com.wechat.pay.java.service.refund.model.Status;
 import com.westee.cake.dao.GoodsStockMapper;
@@ -55,7 +56,6 @@ public class OrderService {
 
     private final GoodsStockMapper goodsStockMapper;
 
-
     private final AddressMapper addressMapper;
 
     private final UserMapper userMapper;
@@ -74,7 +74,7 @@ public class OrderService {
     @Autowired
     public OrderService(OrderTableMapper orderMapper, MyOrderMapper myOrderMapper, OrderGoodsMapper orderGoodsMapper,
                         ShopMapper shopMapper, GoodsService goodsService, GoodsStockMapper goodsStockMapper,
-                         AddressMapper addressMapper,
+                        AddressMapper addressMapper,
                         UserMapper userMapper, UserCouponMapper userCouponMapper, CouponMapper couponMapper,
                         WechatPayService wechatPayService, MyShoppingCartMapper myShoppingCartMapper,
                         UserService userService) {
@@ -101,33 +101,40 @@ public class OrderService {
      * @param userId    用户id
      * @param couponId  优惠券id
      * @return OrderResponse
-     * @throws RuntimeException     支付错误
+     * @throws RuntimeException 支付错误
      */
     @Transactional
     public OrderResponseWithPayInfo createOrder(OrderInfo orderInfo, OrderTable requestOrder, Long userId, Long couponId) throws RuntimeException {
 
         Map<Long, Goods> idToGoodsMap = getIdTOGoodsMap(orderInfo.getGoods());
-        BigDecimal totalPriceBeforeCoupon = calculateTotalPrice(orderInfo, idToGoodsMap);
+        BigDecimal totalPrice = calculateTotalPrice(orderInfo, idToGoodsMap);
         User user = userMapper.selectByPrimaryKey(userId);
 
         String orderNo = generateOrderNo();
 
         // 使用优惠券
-        BigDecimal totalPrice = Objects.isNull(couponId) ? totalPriceBeforeCoupon : useCoupon(userId, couponId, totalPriceBeforeCoupon);
+        BigDecimal finalPrice = Objects.isNull(couponId) ? totalPrice : useCoupon(userId, couponId, totalPrice);
+
+        // 创建订单
+        OrderTable createdOrder = createdOrderViaRpc(orderInfo, requestOrder, userId, orderNo, totalPrice, finalPrice, couponId);
 
         // 扣款
         if (Objects.equals(requestOrder.getPayType(), PayType.BALANCE.getName())) {  // 余额支付
-            deductUserMoney(userId, totalPrice);
-        } else {    //  微信支付
+            deductUserMoney(userId, finalPrice);
+            deductStock(orderInfo);
+            return new OrderResponseWithPayInfo(generateResponse(createdOrder, idToGoodsMap, orderInfo.getGoods()));
+
+        } else {    //  微信支付 回调成功后扣减库存
             String detail = idToGoodsMap.values().stream().map(Goods::getName).collect(Collectors.joining(","));
+            OrderResponseWithPayInfo orderResponseWithPayInfo = new OrderResponseWithPayInfo();
+
             try {
                 // ... 调用接口
                 PrepayWithRequestPaymentResponse response = wechatPayService.
-                        prepayWithRequestPayment(detail, orderNo, totalPrice, user.getWxOpenId(),
+                        prepayWithRequestPayment(detail, orderNo, finalPrice, user.getWxOpenId(),
                                 OrderType.GOODS);
-                OrderResponseWithPayInfo orderResponseWithPayInfo = new OrderResponseWithPayInfo();
                 orderResponseWithPayInfo.setPrepay(response);
-                return orderResponseWithPayInfo;
+
             } catch (com.wechat.pay.java.core.exception.HttpException e) { // 发送HTTP请求失败
                 // 调用e.getHttpRequest()获取请求打印日志或上报监控，更多方法见HttpException定义
                 log.error("发送HTTP请求失败 {}", e.getHttpRequest());
@@ -138,13 +145,8 @@ public class OrderService {
                 // 调用e.getMessage()获取信息打印日志或上报监控，更多方法见MalformedMessageException定义
                 log.error("服务返回成功，返回体类型不合法，或者解析返回体失败 {}", e.getMessage());
             }
+            return orderResponseWithPayInfo;
         }
-
-        // 扣减库存
-        deductStock(orderInfo);
-
-        OrderTable createdOrder = createdOrderViaRpc(orderInfo, requestOrder, idToGoodsMap, userId, orderNo);
-        return new OrderResponseWithPayInfo(generateResponse(createdOrder, idToGoodsMap, orderInfo.getGoods()));
     }
 
     /**
@@ -166,9 +168,9 @@ public class OrderService {
     /**
      * 同一个couponId只该查到一个未使用 未到期的优惠券
      *
-     * @param userId        用户id
-     * @param couponId      优惠券id
-     * @param totalFee      总费用
+     * @param userId   用户id
+     * @param couponId 优惠券id
+     * @param totalFee 总费用
      */
     public BigDecimal useCoupon(long userId, long couponId, BigDecimal totalFee) {
         Coupon coupon = couponMapper.selectByPrimaryKey(couponId);
@@ -196,39 +198,40 @@ public class OrderService {
     /**
      * 修改购物车中对应商品的状态
      *
-     * @param orderInfo     { orderId, addressId, List<GoodsInfo> goods }
-     * @param idToGoodsMap  goodsId: goods map
-     * @param userId        用户id
-     * @return              OrderTable
+     * @param orderInfo { orderId, addressId, List<GoodsInfo> goods }
+     * @param userId    用户id
+     * @return OrderTable
      */
-    private OrderTable createdOrderViaRpc(OrderInfo orderInfo, OrderTable orderTable, Map<Long, Goods> idToGoodsMap,
-                                          long userId, String orderNo) {
+    private OrderTable createdOrderViaRpc(OrderInfo orderInfo, OrderTable requestOrder, long userId, String orderNo,
+                                          BigDecimal totalPrice, BigDecimal finalPrice, Long couponId) {
         OrderTable order = new OrderTable();
-        String payType = orderTable.getPayType();
+        String payType = requestOrder.getPayType();
         PayType.isInMyEnum(payType);
         order.setPayType(payType);
-        order.setPickupType(orderTable.getPickupType());
+        order.setPickupType(requestOrder.getPickupType());
         order.setWxOrderNo(orderNo);
         order.setUserId(userId);
-        order.setStatus(OrderStatus.PENDING.getName());
-        order.setPhone(orderTable.getPhone());
-        order.setPickUpTime(Objects.isNull(orderTable.getPickUpTime()) ? new Date() : orderTable.getPickUpTime());
+        order.setPhone(requestOrder.getPhone());
+        order.setDiscountId(couponId);
+        order.setPickUpTime(Objects.isNull(requestOrder.getPickUpTime()) ? new Date() : requestOrder.getPickUpTime());
 
 
-        if(PayType.MINIAPP.getName().equals(payType)) { // 微信支付先设置成等待确认付款状态 在回调中设置为已支付
+        if (PayType.MINIAPP.getName().equals(payType)) { // 微信支付先设置成等待确认付款状态 在回调中设置为已支付
             order.setStatus(OrderStatus.UNPAID.getName());
         } else {
             order.setStatus(OrderStatus.PAID.getName());
         }
 
         // 外送需要地址
-        if (Objects.equals(orderTable.getPickupType(), OrderPickupStatus.EXPRESS.getValue())) {
+        if (Objects.equals(requestOrder.getPickupType(), OrderPickupStatus.EXPRESS.getValue())) {
             if (Objects.isNull(addressMapper.selectByPrimaryKey(orderInfo.getAddressId()))) {
                 throw HttpException.badRequest("地址不存在");
             }
             order.setAddressId(orderInfo.getAddressId());
         }
-        order.setTotalPrice(calculateTotalPrice(orderInfo, idToGoodsMap));
+        //
+        order.setTotalPrice(totalPrice);
+        order.setFinalAmount(finalPrice);
 
         ShoppingCart shoppingCart = new ShoppingCart();
         shoppingCart.setStatus(ShoppingCartStatus.PAID.getName());
@@ -240,19 +243,23 @@ public class OrderService {
         params.put("updatedAt", new Date());
         myShoppingCartMapper.updateByExampleSelectiveWithStatus(params);
 
-//        orderInfo.getGoods().forEach(goodsInfo -> {
-//            long goodsId = goodsInfo.getId();
-//            ShoppingCartExample shoppingCartExample = new ShoppingCartExample();
-//            shoppingCartExample.createCriteria().andUserIdEqualTo(userId).andGoodsIdEqualTo(goodsId)
-//                    .andStatusEqualTo(ShoppingCartStatus.OK.getName()).andIdEqualTo(1L);
-//
-//            shoppingCartMapper.updateByExampleSelective(shoppingCart, shoppingCartExample);
-//        });
-
         insertOrder(order);
         orderInfo.setOrderId(order.getId());
         myOrderMapper.insertMultipleOrderGoods(orderInfo);
         return order;
+    }
+
+    public void deductStockAfterWxPaySuccessByOrderId(Long orderId) {
+        log.warn("微信成功付款后减库存 orderId： {}", orderId);
+        OrderGoodsExample orderGoodsExample = new OrderGoodsExample();
+        orderGoodsExample.createCriteria().andOrderIdEqualTo(orderId);
+        List<OrderGoods> orderGoodsList = orderGoodsMapper.selectByExample(orderGoodsExample);
+        orderGoodsList.forEach(orderGoods -> {
+            GoodsInfo goodsInfo = new GoodsInfo();
+            goodsInfo.setId(orderGoods.getGoodsId());
+            goodsInfo.setNumber(orderGoods.getNumber().intValue());
+            goodsStockMapper.deductStock(goodsInfo); //.deductStock(goodsInfo);
+        });
     }
 
     public OrderResponse updateExpressInformation(OrderTable order, Long userId) {
@@ -274,7 +281,9 @@ public class OrderService {
         copy.setId(order.getId());
         copy.setExpressId(order.getExpressId());
         copy.setExpressCompany(order.getExpressCompany());
-        return toOrderResponse(updateOrder(copy));
+        updateOrderByPrimaryKeySelective(copy);
+        OrderGoodsVO orderGoodsVO = generateOrderGoodsVO(order.getId());
+        return toOrderResponse(orderGoodsVO);
     }
 
     // 订单没插入 购物车状态不对
@@ -368,23 +377,72 @@ public class OrderService {
             throw HttpException.notFound("订单未找到，id=" + order.getId());
         }
 
-        if (orderInDatabase.getUserId() != userId) {
+        if (userService.checkAdmin(userId) || orderInDatabase.getUserId() == userId) {
+            if (Objects.equals(order.getStatus(), OrderStatus.RECEIVED.getName())) {
+                OrderTable copy = new OrderTable();
+                copy.setId(order.getId());
+                copy.setStatus(order.getStatus());
+                copy.setUpdatedAt(new Date());
+                updateOrderByPrimaryKeySelective(order);
+                return toOrderResponse(generateOrderGoodsVO(order.getId()));
+            }
+
+            // 取消/退款已支付订单
+            if (Objects.equals(order.getStatus(), OrderStatus.CHECK_REFUND.getName())) {
+                OrderTable copy = new OrderTable();
+                copy.setStatus(OrderStatus.CHECK_REFUND.getName());
+                copy.setId(order.getId());
+                copy.setUpdatedAt(new Date());
+                updateOrderByPrimaryKeySelective(copy);
+                return toOrderResponse(generateOrderGoodsVO(order.getId()));
+            }
+
+            // 申请退款后取消申请
+            if (Objects.equals(order.getStatus(), OrderStatus.PAID.getName()) &&
+                    Objects.equals(orderInDatabase.getStatus(), OrderStatus.CHECK_REFUND.getName())) {
+                order.setPickUpTime(new Date());
+                OrderTable copy = new OrderTable();
+                copy.setId(order.getId());
+                copy.setStatus(OrderStatus.PAID.getName());
+                copy.setUpdatedAt(new Date());
+                orderMapper.updateByPrimaryKeySelective(copy);
+
+                return toOrderResponse(generateOrderGoodsVO(order.getId()));
+            }
+        } else {
             throw HttpException.forbidden("无权访问");
         }
+        return toOrderResponse(generateOrderGoodsVO(order.getId()));
+    }
 
-        // 取消已支付订单有两种情况
-        if (Objects.equals(orderInDatabase.getStatus(), OrderStatus.PAID.getName()) &&
-                Objects.equals(order.getStatus(), OrderStatus.CANCEL.getName())) {
-            // 微信支付
-            cancelOrder(orderInDatabase);
+    /**
+     * @param userId
+     * @param orderTradeNo
+     * @param orderId
+     */
+    public void adminConfirmRefund(Long userId, String orderTradeNo, Long orderId, Boolean isWxCallback) {
+        OrderTableExample orderTableExample = new OrderTableExample();
+        if (Objects.nonNull(orderTradeNo) && !Objects.equals("", orderTradeNo)) {
+            orderTableExample.createCriteria().andWxOrderNoEqualTo(orderTradeNo);
         } else {
-            OrderTable copy = new OrderTable();
-            copy.setStatus(order.getStatus());
-            copy.setId(order.getId());
-            copy.setUpdatedAt(new Date());
-            return toOrderResponse(updateOrder(order));
+            orderTableExample.createCriteria().andIdEqualTo(orderId);
         }
-        return null;
+
+        List<OrderTable> orderTables = orderMapper.selectByExample(orderTableExample);
+        OrderTable orderInDB;
+        if (orderTables.isEmpty()) {
+            throw HttpException.badRequest("参数错误");
+        } else {
+            orderInDB = orderTables.get(0);
+        }
+
+        if ((isWxCallback && Objects.isNull(userId)) || userService.checkAdmin(userId)) {
+            if (Objects.equals(orderInDB.getPayType(), PayType.MINIAPP.getName())) {
+                cancelWXPayOrder(orderInDB);
+            } else {
+                setOrderRefunded(orderInDB);
+            }
+        }
     }
 
     public OrderResponse deleteOrder(long orderId, long userId) {
@@ -423,17 +481,19 @@ public class OrderService {
         return goodsService.getGoodsToMapByGoodsIds(goodsId);
     }
 
-    public PageResponse<OrderResponse> getOrder(long userId, Integer pageNum, Integer pageSize, OrderStatus status) {
+    public PageResponse<OrderResponse> getOrder(long userId, Integer pageNum, Integer pageSize, OrderStatus status,
+                                                Byte pickupType) {
         OrderTableExample countByStatus = new OrderTableExample();
-        setStatus(countByStatus, status).andUserIdEqualTo(userId);
+        setStatus(countByStatus, status, pickupType).andUserIdEqualTo(userId);
         int count = (int) orderMapper.countByExample(countByStatus);
 
-        OrderTableExample pagedOrder = new OrderTableExample();
-        setStatus(pagedOrder, status).andUserIdEqualTo(userId);
+//        OrderTableExample pagedOrder = new OrderTableExample();
+//        setStatus(pagedOrder, status, pickupType).andUserIdEqualTo(userId);
 
         Role role = userService.getUserRole(userId);
 
         List<OrderTable> orders = myOrderMapper.getOrderList(status != null ? status.getName() : null,
+                pickupType,
                 userId, (pageNum - 1) * pageSize, pageSize, role.getName());
         List<OrderGoods> orderGoods = getOrderGoods(orders);
 
@@ -483,13 +543,16 @@ public class OrderService {
         return orderGoodsMapper.selectByExample(selectByOrderIds);
     }
 
-    public OrderGoodsVO updateOrder(OrderTable order) {
+    public OrderTable updateOrderByPrimaryKeySelective(OrderTable order) {
         orderMapper.updateByPrimaryKeySelective(order);
+        return order;
+    }
 
-        List<GoodsInfo> goodsInfo = myOrderMapper.getGoodsInfoOfOrder(order.getId());
+    public OrderGoodsVO generateOrderGoodsVO(Long orderId) {
+        List<GoodsInfo> goodsInfo = myOrderMapper.getGoodsInfoOfOrder(orderId);
         OrderGoodsVO result = new OrderGoodsVO();
         result.setGoods(goodsInfo);
-        result.setOrder(orderMapper.selectByPrimaryKey(order.getId()));
+        result.setOrder(orderMapper.selectByPrimaryKey(orderId));
         return result;
     }
 
@@ -512,12 +575,17 @@ public class OrderService {
         return result;
     }
 
-    private OrderTableExample.Criteria setStatus(OrderTableExample orderExample, OrderStatus status) {
+    private OrderTableExample.Criteria setStatus(OrderTableExample orderExample, OrderStatus status, Byte pickupType) {
+        OrderTableExample.Criteria criteria = orderExample.createCriteria();
         if (status == null) {
-            return orderExample.createCriteria().andStatusNotEqualTo(DELETED.getName());
+            criteria.andStatusNotEqualTo(DELETED.getName());
         } else {
-            return orderExample.createCriteria().andStatusEqualTo(status.getName());
+            criteria.andStatusEqualTo(status.getName());
         }
+        if (pickupType != null) {
+            criteria.andPickupTypeEqualTo(pickupType);
+        }
+        return criteria;
     }
 
     /**
@@ -592,12 +660,12 @@ public class OrderService {
         return sb.toString();
     }
 
-    public OrderTable getOrderByOutTradeNo(String outTradeNo) throws Exception {
+    public OrderTable getOrderByOutTradeNo(String outTradeNo) {
         OrderTableExample orderTableExample = new OrderTableExample();
         orderTableExample.createCriteria().andWxOrderNoEqualTo(outTradeNo);
         List<OrderTable> orderTables = orderMapper.selectByExample(orderTableExample);
-        if(orderTables.isEmpty()) {
-            throw new Exception("未找到订单");
+        if (orderTables.isEmpty()) {
+            throw HttpException.badRequest("未找到订单");
         }
         return orderTables.get(0);
     }
@@ -607,13 +675,16 @@ public class OrderService {
     }
 
     /**
+     * 发起微信退款请求
+     * 管理员同意退款 或者主动退款再调用
+     *
      * @param order OrderTable
      */
-    public void cancelOrder(OrderTable order) {
+    public void cancelWXPayOrder(OrderTable order) {
         String payType = order.getPayType();
         // 处理退款
         if (Objects.equals(payType, PayType.MINIAPP.getName())) {
-            Refund refund = WechatPayService.createRefund(order.getWxOrderNo());
+            Refund refund = wechatPayService.createRefund(order.getWxOrderNo(), order.getFinalAmount());
             Status refundStatus = refund.getStatus();
             if (Status.CLOSED.equals(refundStatus)) {
                 throw HttpException.forbidden("退款已关闭，无法退款");
@@ -621,43 +692,66 @@ public class OrderService {
                 throw HttpException.badRequest("退款异常");
             } else {
                 //SUCCESS：退款成功（退款申请成功） || PROCESSING：退款处理中
+                Amount amount = refund.getAmount();
+                Long refundNum = amount.getRefund();
                 //记录支退款日志
             }
-        } else {
-            // 更新user表  balance
-            User user = userMapper.selectByPrimaryKey(order.getUserId());
-            BigDecimal add = user.getBalance().add(order.getTotalPrice());
-            User userSelective = new User();
-            userSelective.setId(user.getId());
-            userSelective.setBalance(add);
-            userSelective.setUpdatedAt(new Date());
-            userMapper.updateByPrimaryKeySelective(userSelective);
-
-            // 更新order表 status
-            OrderTable copy = new OrderTable();
-            copy.setStatus(order.getStatus());
-            copy.setId(order.getId());
-            copy.setUpdatedAt(new Date());
-            orderMapper.updateByPrimaryKeySelective(copy);
         }
     }
 
     /**
-     * 在取消订单 接收到微信退款成功的通知后调用
+     * 用户取消订单时 都要先经过老板的同意
+     * <p>
+     * 在取消已付款订单 接收到微信退款成功的通知后调用
+     * 1. 增加库存
+     * 2. 退回钱款
+     * 3. 退回优惠券
      *
-     * @param orderTradeNo 订单的 no
+     * @param orderInDB 订单的 no
      */
-    public void setOrderCancel(String orderTradeNo) {
-        OrderTableExample orderTableExample = new OrderTableExample();
-        orderTableExample.createCriteria().andWxOrderNoEqualTo(orderTradeNo);
-        List<OrderTable> orderTables = orderMapper.selectByExample(orderTableExample);
-        OrderTable orderTable = orderTables.get(0);
-
+    public void setOrderRefunded(OrderTable orderInDB) {
+        log.warn("进行退款 库存 优惠券操作： {}", orderInDB);
+        // 修改订单状态 更新order表 status
         OrderTable order = new OrderTable();
-        order.setId(orderTable.getId());
-        order.setStatus(OrderStatus.CANCEL.name());
+        order.setId(orderInDB.getId());
+        order.setStatus(OrderStatus.REFUNDED.getName());
         order.setUpdatedAt(new Date());
         orderMapper.updateByPrimaryKeySelective(order);
+
+        // 增加库存
+        OrderGoodsExample orderGoodsExample = new OrderGoodsExample();
+        orderGoodsExample.createCriteria().andOrderIdEqualTo(orderInDB.getId());
+        List<OrderGoods> orderGoodsList = orderGoodsMapper.selectByExample(orderGoodsExample);
+        orderGoodsList.forEach(orderGoods -> goodsStockMapper.addStock(orderGoods.getGoodsId(), orderGoods.getNumber()));
+
+        Long userId = orderInDB.getUserId();
+        // 余额支付方式才需要退款操作数据库
+        if (Objects.equals(orderInDB.getPayType(), PayType.BALANCE.getName())) {
+            // 退款
+            BigDecimal finalAmount = orderInDB.getFinalAmount();
+            User userById = userService.getUserById(userId);
+
+            User user = new User();
+            user.setId(orderInDB.getUserId());
+            user.setBalance(userById.getBalance().add(finalAmount));
+            userMapper.updateByPrimaryKeySelective(user);
+        }
+
+        // 退还优惠券
+        if (Objects.nonNull(orderInDB.getDiscountId())) {
+            UserCouponExample userCouponExample = new UserCouponExample();
+            userCouponExample.createCriteria().andCouponIdEqualTo(orderInDB.getDiscountId())
+                    .andUserIdEqualTo(userId).andUsedEqualTo(true);
+            // 保证未使用的同一个优惠券只有一个
+            List<UserCoupon> userCoupons = userCouponMapper.selectByExample(userCouponExample);
+            if (!userCoupons.isEmpty()) {
+                UserCoupon userCoupon = userCoupons.get(0);
+                userCoupon.setUsed(false);
+                userCoupon.setUpdatedAt(new Date());
+                userCoupon.setUsedTime(null);
+                userCouponMapper.updateByPrimaryKey(userCoupon);
+            }
+        }
     }
 
     public enum PayType {

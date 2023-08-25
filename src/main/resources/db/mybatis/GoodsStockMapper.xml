@@ -7,4 +7,10 @@
           and status = 'OK'
           and stock >= #{number}
     </update>
+
+    <update id="addStock">
+        update GOODS set stock = stock + #{number}
+        where id = #{id}
+          and status = 'OK'
+    </update>
 </mapper>

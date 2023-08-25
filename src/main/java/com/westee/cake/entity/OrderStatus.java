@@ -1,5 +1,7 @@
 package com.westee.cake.entity;
 
+import com.westee.cake.exceptions.HttpException;
+
 public enum OrderStatus {
     PENDING, // 待取货
     PAID,   // 已支付
@@ -7,6 +9,8 @@ public enum OrderStatus {
     CANCEL, // 已取消
     FAIL, // 微信扣款失败
     DELETED, // 已删除
+    CHECK_REFUND, // 等待
+    REFUNDED,  // 已退款
     RECEIVED; // 已收货
 
     public String getName() {
@@ -20,7 +24,7 @@ public enum OrderStatus {
             }
             return OrderStatus.valueOf(name.toUpperCase());
         } catch (IllegalArgumentException e) {
-            return null;
+           throw HttpException.badRequest("参数不正确");
         }
     }
 

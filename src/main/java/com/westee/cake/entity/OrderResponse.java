@@ -27,6 +27,10 @@ public class OrderResponse extends OrderTable {
         this.setShopId(order.getShopId());
         this.setPickupCode(order.getPickupCode());
         this.setPickupType(order.getPickupType());
+        this.setWxOrderNo(order.getWxOrderNo());
+        this.setDiscountId(order.getDiscountId());
+        this.setFinalAmount(order.getFinalAmount());
+        this.setPayType(order.getPayType());
     }
 
     public Shop getShop() {

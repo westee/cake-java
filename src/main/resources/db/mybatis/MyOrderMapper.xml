@@ -46,6 +46,9 @@
         <if test="roleName == 'normal'">
             AND USER_ID = #{userId}
         </if>
+        <if test="pickupType != null">
+           AND PICKUP_TYPE = #{pickupType}
+        </if>
 
         ORDER BY CREATED_AT DESC
         limit #{start}, #{offset}
