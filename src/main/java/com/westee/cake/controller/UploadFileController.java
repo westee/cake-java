@@ -7,11 +7,7 @@ import com.qiniu.storage.Region;
 import com.qiniu.storage.UploadManager;
 import com.qiniu.util.Auth;
 import com.qiniu.util.IOUtils;
-import com.westee.cake.exceptions.HttpException;
-import com.westee.cake.generate.User;
-import com.westee.cake.realm.JWTUtil;
-import com.westee.cake.realm.LoginType;
-import com.westee.cake.service.UserService;
+import com.westee.cake.config.QiniuConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -26,38 +22,32 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
-import java.util.Objects;
 import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/v1/upload/")
 public class UploadFileController {
-    // 七牛云配置
-    private static final String ACCESS_KEY = "";
-    private static final String SECRET_KEY = "";
-    private static final String BUCKET_NAME = "";
-
-    private  final UserService userService;
+    private final QiniuConfig qiniuConfig;
 
     @Autowired
-    public UploadFileController(UserService userService) {
-        this.userService = userService;
+    public UploadFileController(QiniuConfig qiniuConfig) {
+        this.qiniuConfig = qiniuConfig;
     }
 
     @PostMapping("image")
-    protected void doPost(@RequestHeader("Token") String  token, HttpServletRequest request, HttpServletResponse response)
+    protected void doPost(@RequestHeader("Token") String token, HttpServletRequest request, HttpServletResponse response)
             throws IOException, ServletException {
-        String username = JWTUtil.getUsername(token);
-        String tokenType = JWTUtil.getTokenType(token);
-        User user;
-        if(Objects.equals(tokenType, LoginType.WECHAT_LOGIN.getType())) {
-            user = userService.getByOpenid(username);
-        } else {
-            user = userService.getUserByName(username);
-        }
-        if(Objects.isNull(user)) {
-            throw HttpException.notFound("用户不存在");
-        }
+//        String username = JWTUtil.getUsername(token);
+//        String tokenType = JWTUtil.getTokenType(token);
+//        User user;
+//        if(Objects.equals(tokenType, LoginType.WECHAT_LOGIN.getType())) {
+//            user = userService.getByOpenid(username);
+//        } else {
+//            user = userService.getUserByName(username);
+//        }
+//        if(Objects.isNull(user)) {
+//            throw HttpException.notFound("用户不存在");
+//        }
 
         String patternFormat = "^.*\\.(jpg|png)$";
         Pattern pattern = Pattern.compile(patternFormat);
@@ -66,15 +56,15 @@ public class UploadFileController {
         UploadManager uploadManager = new UploadManager(cfg);
 
         // 生成上传凭证
-        Auth auth = Auth.create(ACCESS_KEY, SECRET_KEY);
-        String uploadToken = auth.uploadToken(BUCKET_NAME);
+        Auth auth = Auth.create(qiniuConfig.getACCESS_KEY(), qiniuConfig.getSECRET_KEY());
+        String uploadToken = auth.uploadToken(qiniuConfig.getBUCKET_NAME());
 
         // 获取上传文件数据
         Part filePart = request.getPart("file");
         filePart.getSubmittedFileName();
         String imageName = filePart.getSubmittedFileName();
-        String substring = imageName.substring(imageName.lastIndexOf("."));
-        String submittedFileName = new Date() + "--" + user.getId() + substring;
+//        String substring = imageName.substring(imageName.lastIndexOf("."));
+        String submittedFileName = new Date().getTime() + "_" + imageName;
 
         // 上传文件到七牛云
         try (InputStream fileData = filePart.getInputStream()) {
@@ -82,6 +72,7 @@ public class UploadFileController {
             ByteArrayInputStream byteInputStream = new ByteArrayInputStream(data);
             Response put = uploadManager.put(byteInputStream, submittedFileName, uploadToken, null, null);
             response.setStatus(HttpServletResponse.SC_OK);
+            response.setCharacterEncoding("UTF-8");
             response.getWriter().println(put.bodyString());
         } catch (QiniuException ex) {
             response.setStatus(ex.code());
