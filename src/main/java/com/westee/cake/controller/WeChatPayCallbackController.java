@@ -39,7 +39,7 @@ public class WeChatPayCallbackController {
     private final WxPayUtil wxPayUtil;
 
 
-    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
+    private static final Logger log = LoggerFactory.getLogger(WeChatPayCallbackController.class);
 
     @Autowired
     public WeChatPayCallbackController(OrderService orderService,
@@ -52,11 +52,6 @@ public class WeChatPayCallbackController {
 
     /**
      * 下单商品 || 充值
-     *
-     * @param request
-     * @param response
-     * @param body
-     * @return
      */
     @PostMapping(value = "/pay")
     public HashMap<String, String> callBackWeiXinPay(HttpServletRequest request, HttpServletResponse response,
@@ -81,22 +76,28 @@ public class WeChatPayCallbackController {
                 //        重复回调
                 if (orderByOrderNo.getStatus().equals(OrderStatus.PAID.getName())) {
                     log.warn("商品订单 重复确认 outTradeNo：{}", outTradeNo);
-                    return generateResponseToWxPayCallback("OK", "成功-重复");
+                    return generateResponseToWxPayCallback("SUCCESS", "成功-重复");
                 }
 
-                //        金额验证
+                // 金额验证
                 if (new BigDecimal(appCallBackVo.getAmount().getTotal()).compareTo(orderByOrderNo.getTotalPrice().multiply(BigDecimal.valueOf(100))) != 0) {
                     response.setStatus(500);
                     log.warn("商品订单 金额不正确 总额（元）：{}", orderByOrderNo.getTotalPrice());
                     return generateResponseToWxPayCallback("FAIL", "金额不正确");
                 }
+                OrderTable orderSelective = new OrderTable();
+                orderSelective.setId(orderByOrderNo.getId());
                 if (appCallBackVo.getTradeState().name().equals(WxPayConstant.SUCCESS.name())) { // Trade_state是大写
+                    log.error("appCallBackVo.getTradeState().name() {}", appCallBackVo.getTradeState().name().equals(WxPayConstant.SUCCESS.name()));
+                    orderService.deductStockAfterWxPaySuccessByOrderId(orderByOrderNo.getId());
                     // 更新订单状态
-                    orderByOrderNo.setStatus(OrderStatus.PAID.getName());
+                    orderSelective.setStatus(OrderStatus.PAID.getName());
                 } else {
-                    orderByOrderNo.setStatus(OrderStatus.FAIL.getName());
+                    orderSelective.setStatus(OrderStatus.FAIL.getName());
                 }
-                orderService.updateOrder(orderByOrderNo);
+                if (Objects.nonNull(orderSelective.getStatus())) {
+                    orderService.updateOrderByPrimaryKeySelective(orderSelective);
+                }
 
             } else {
                 Charge chargeByOutTradeNo = chargeService.getChargeByOutTradeNo(outTradeNo);
@@ -109,7 +110,7 @@ public class WeChatPayCallbackController {
                 // 重复回调
                 if (chargeByOutTradeNo.getStatus().equals(ChargeStatus.OK.getName())) {
                     log.warn("充值订单 重复确认 outTradeNo：{}", outTradeNo);
-                    return generateResponseToWxPayCallback("OK", "成功-重复");
+                    return generateResponseToWxPayCallback("SUCCESS", "成功-重复");
                 }
 
                 // 金额验证
@@ -130,9 +131,9 @@ public class WeChatPayCallbackController {
                 userService.updateUserBalance(chargeByOutTradeNo);
             }
 
-            return generateResponseToWxPayCallback("OK", "成功");
+            return generateResponseToWxPayCallback("SUCCESS", "成功");
         } catch (Exception e) {
-            log.error("回调解析错误： {}",e.getMessage());
+            log.error("回调解析错误： {}", e.getMessage());
             response.setStatus(500);
             return generateResponseToWxPayCallback("FAIL", "失败");
         }
@@ -148,14 +149,15 @@ public class WeChatPayCallbackController {
 
             String orderTradeNo = refundNotification.getOutTradeNo();
             Status refundStatus = refundNotification.getRefundStatus();
+            OrderTable order = orderService.getOrderByOutTradeNo(orderTradeNo);
 
             if ("SUCCESS".equals(refundStatus.toString())) {
-                log.warn("更新退款记录：已退款");
+                log.warn("更新退款记录：已退款 {}", orderTradeNo);
                 //退款状态
-//                refundInfoService.updateRefundInfoStatus(refundNotification, RefundStatusEnum.REFUND);
-                //订单状态
-                orderService.setOrderCancel(orderTradeNo);
-//                orderInfoService.updateStatus(orderTradeNo, OrderStatusEnum.CANCLE_REFUND.getStatus());
+                if (Objects.equals(order.getStatus(), OrderStatus.PAID.getName()) ||
+                        Objects.equals(order.getStatus(), OrderStatus.CHECK_REFUND.getName())) {
+                    orderService.setOrderRefunded(order);
+                }
             }
 
             //成功应答

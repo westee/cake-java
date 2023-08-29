@@ -26,13 +26,14 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
+
 @Service
 public class WechatPayService {
-    private final WxPayConfig wxPayConfig;
-
     public static JsapiServiceExtension jsapiServiceExtension;
+    private static final Logger log = LoggerFactory.getLogger(WechatPayService.class);
     public static RefundService refundService;
-    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
+
+    private final WxPayConfig wxPayConfig;
 
     /**
      * 人民币
@@ -42,6 +43,7 @@ public class WechatPayService {
     @Autowired
     public WechatPayService(WxPayConfig wxPayConfig) throws Exception {
         this.wxPayConfig = wxPayConfig;
+
         this.init();
     }
 
@@ -85,7 +87,7 @@ public class WechatPayService {
      * @param money                 金额
      * @param openId                用户openid
      * @param type                  购买商品 goods、充值 charge
-     * @return
+     * @return PrepayWithRequestPaymentResponse 支付信息
      */
     public PrepayWithRequestPaymentResponse prepayWithRequestPayment(String details, String outTradeNo,
                                                                      BigDecimal money, String openId, OrderType type) {
@@ -142,19 +144,21 @@ public class WechatPayService {
     /**
      * 退款申请
      **/
-    public static Refund createRefund(String outTradeNo) {
+    public Refund createRefund(String outTradeNo, BigDecimal finalAmount) {
         CreateRequest request = new CreateRequest();
         // 调用request.setXxx(val)设置所需参数，具体参数可见Request定义
         request.setOutTradeNo(outTradeNo);
         request.setOutRefundNo("REFUND_" + outTradeNo);
+        log.warn("request outTradeNo refund: {}", outTradeNo);
+        log.warn("request NotifyUrl refund: {}", wxPayConfig.getRefundNotifyUrl());
 
         AmountReq amount = new AmountReq();
-        amount.setTotal(1L);
-        amount.setRefund(1L);
+        amount.setTotal(decimalToLong(finalAmount));
+        amount.setRefund(decimalToLong(finalAmount));
         amount.setCurrency(CNY);
 
         request.setAmount(amount);
-        request.setNotifyUrl("amount");
+        request.setNotifyUrl(wxPayConfig.getRefundNotifyUrl());
         // 调用接口
         return refundService.create(request);
     }
