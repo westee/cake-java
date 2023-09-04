@@ -7,6 +7,7 @@ import com.westee.cake.entity.GoodsStatus;
 import com.westee.cake.entity.PageResponse;
 import com.westee.cake.entity.ShoppingCartData;
 import com.westee.cake.entity.ShoppingCartGoods;
+import com.westee.cake.entity.ShoppingCartStatus;
 import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.Goods;
 import com.westee.cake.generate.ShoppingCart;
@@ -174,7 +175,8 @@ public class ShoppingCartService {
 
     public int countByGoodsIdAndUserId(long goodsId, Long userId) {
         ShoppingCartExample shoppingCartExample = new ShoppingCartExample();
-        shoppingCartExample.createCriteria().andGoodsIdEqualTo(goodsId).andUserIdEqualTo(userId);
+        shoppingCartExample.createCriteria().andGoodsIdEqualTo(goodsId).andUserIdEqualTo(userId)
+                .andStatusEqualTo(ShoppingCartStatus.OK.getName());
         List<ShoppingCart> shoppingCarts = shoppingCartMapper.selectByExample(shoppingCartExample);
         if (shoppingCarts.size() == 0) {
             return 0;
