@@ -19,29 +19,30 @@ public class GoodsImageService {
     private final GoodsImageMapper goodsImageMapper;
     private final GoodsMapper goodsMapper;
     private final ShopMapper shopMapper;
+    private final UserService userService;
 
     @Autowired
-    public GoodsImageService(GoodsMapper goodsMapper, ShopMapper shopMapper, GoodsImageMapper goodsImageMapper) {
+    public GoodsImageService(GoodsImageMapper goodsImageMapper, GoodsMapper goodsMapper, ShopMapper shopMapper, UserService userService) {
+        this.goodsImageMapper = goodsImageMapper;
         this.goodsMapper = goodsMapper;
         this.shopMapper = shopMapper;
-        this.goodsImageMapper = goodsImageMapper;
+        this.userService = userService;
     }
 
-    public void deleteGoodsImage(String imageName) {
+    public void deleteGoodsImage(String imageName, String token) {
         GoodsImage goodsImage = new GoodsImage();
         GoodsImageExample goodsImageExample = new GoodsImageExample();
         goodsImageExample.createCriteria().andUrlEqualTo(imageName);
-        checkGoodsBelongToUser(goodsImageExample);
+        checkGoodsBelongToUser(goodsImageExample, token);
         goodsImage.setDeleted(1);
         goodsImageMapper.updateByExampleSelective(goodsImage, goodsImageExample);
     }
 
-    public void checkGoodsBelongToUser(GoodsImageExample example) {
+    public void checkGoodsBelongToUser(GoodsImageExample example, String token) {
         GoodsImage goodsImage = goodsImageMapper.selectByExample(example).get(0);
         Long goodsId = goodsImage.getOwnerGoodsId();
         // 根据goods的shop查询当前用户是不是店铺的拥有者
-        User sessionUser = UserService.getSessionUser();
-        Long userId = sessionUser.getId();
+        User userByToken = userService.getUserByToken(token);
 
         Goods goodsResult;
         Shop shopResult;
@@ -52,7 +53,7 @@ public class GoodsImageService {
         if (shopResult == null) {
             throw HttpException.forbidden("参数不合法");
         }
-        if (!Objects.equals(shopResult.getOwnerUserId(), userId)) {
+        if (!Objects.equals(shopResult.getOwnerUserId(), userByToken.getId())) {
             throw HttpException.forbidden("拒绝访问");
         }
     }
