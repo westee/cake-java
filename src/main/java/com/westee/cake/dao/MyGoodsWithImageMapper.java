@@ -11,7 +11,8 @@ public interface MyGoodsWithImageMapper {
     GoodsWithImages getGoodsWithImage(long goodsId);
     List<GoodsWithImages> getGoodsListWithImageByShopId(@Param("id") long shopId,
                                                         @Param("limit") int limit,
-                                                        @Param("offset") int offset);
+                                                        @Param("offset") int offset,
+                                                        @Param("status") String status);
 
     List<GoodsWithImages> getGoodsListWithImageByShopIdAndCategory(@Param("id") long shopId,
                                                         @Param("categoryId") long categoryId);

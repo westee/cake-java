@@ -49,7 +49,7 @@ public class GoodsService {
         this.discountDayMapper = discountDayMapper;
     }
 
-    public PageResponse<GoodsWithImages> getGoodsByShopIdAndCategoryId(Integer pageNum, Integer pageSize, Long shopId) {
+    public PageResponse<GoodsWithImages> getGoodsByShopIdAndCategoryId(Integer pageNum, Integer pageSize, Long shopId, String status) {
         Shop shop = shopMapper.selectByPrimaryKey(shopId);
         if (shop != null) {
             GoodsExample goodsExample = new GoodsExample();
@@ -57,7 +57,7 @@ public class GoodsService {
             long totalPage = count % pageSize == 0 ? count / pageSize : count / pageSize + 1;
             int offset = (pageNum - 1) * pageSize;
             List<GoodsWithImages> goodsListWithImageByShopId =
-                    myGoodsWithImageMapper.getGoodsListWithImageByShopId(shopId, pageSize, offset);
+                    myGoodsWithImageMapper.getGoodsListWithImageByShopId(shopId, pageSize, offset, status);
             goodsListWithImageByShopId.forEach(goodsWithImages -> goodsWithImages.setVipPrice(getGoodsDiscountPrice(goodsWithImages)));
             return PageResponse.pageData(pageNum, pageSize, totalPage, goodsListWithImageByShopId);
         } else {

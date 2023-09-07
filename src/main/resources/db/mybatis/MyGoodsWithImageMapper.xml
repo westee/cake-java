@@ -65,6 +65,12 @@
             LEFT JOIN GOODS_IMAGE gi ON g.ID = gi.OWNER_GOODS_ID and gi.DELETED = 0
         WHERE
             g.SHOP_ID = #{id}
+            <if test="status == 'zero'">
+                AND g.STOCK = 0
+            </if>
+            <if test="status != 'zero'">
+                AND g.STATUS = #{status}
+            </if>
         limit #{offset} , #{limit}
     </select>
     <select id="getGoodsListWithImageByShopIdAndCategory" parameterType="java.util.Map" resultMap="BaseResultMap">

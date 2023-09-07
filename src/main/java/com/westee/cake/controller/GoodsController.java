@@ -27,9 +27,10 @@ public class GoodsController {
     @GetMapping("/goods")
     public PageResponse<GoodsWithImages> getShop(@RequestParam(name = "pageNum", defaultValue = "1", required = false) Integer pageNum,
                                                  @RequestParam(name = "pageSize", defaultValue = "10", required = false) Integer pageSize,
+                                                 @RequestParam(name = "status", defaultValue = "ok", required = false) String status,
                                                  @RequestParam(name = "shopId") Long shopId) {
 
-        return goodsService.getGoodsByShopIdAndCategoryId(pageNum, pageSize, shopId);
+        return goodsService.getGoodsByShopIdAndCategoryId(pageNum, pageSize, shopId, status);
     }
 
     @GetMapping("/goods-category")
