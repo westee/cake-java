@@ -2,7 +2,6 @@ package com.westee.cake.controller;
 
 import com.westee.cake.entity.PageResponse;
 import com.westee.cake.entity.Response;
-import com.westee.cake.entity.ResponseMessage;
 import com.westee.cake.generate.Address;
 import com.westee.cake.service.AddressService;
 import com.westee.cake.service.UserService;
@@ -28,7 +27,7 @@ public class AddressController {
     private final UserService userService;
 
     @Autowired
-    public AddressController(AddressService addressService,UserService userService) {
+    public AddressController(AddressService addressService, UserService userService) {
         this.addressService = addressService;
         this.userService = userService;
     }
@@ -45,13 +44,13 @@ public class AddressController {
     public Response<Address> getShopByAddressId(@PathVariable(name = "addressId") long addressId,
                                                 @RequestHeader("Token") String token) {
         Long tokenUserId = userService.getUserByToken(token).getId();
-        return Response.of("ok", addressService.getAddressById(addressId, tokenUserId));
+        return Response.ok(addressService.getAddressById(addressId, tokenUserId));
     }
 
     @GetMapping("/address/default")
     public Response<Address> getAddressDefault(@RequestHeader("Token") String token) {
         Long tokenUserId = userService.getUserByToken(token).getId();
-        return Response.of("ok", addressService.getAddressDefaultOrNewest(tokenUserId));
+        return Response.ok(addressService.getAddressDefaultOrNewest(tokenUserId));
     }
 
     @PostMapping("/address")
@@ -59,7 +58,7 @@ public class AddressController {
                                            HttpServletResponse response,
                                            @RequestHeader("Token") String token) {
         Long tokenUserId = userService.getUserByToken(token).getId();
-        Response<Address> ret = Response.of(addressService.createAddress(address, tokenUserId));
+        Response<Address> ret = Response.ok(addressService.createAddress(address, tokenUserId));
         response.setStatus(HttpStatus.CREATED.value());
         return ret;
     }
@@ -70,14 +69,14 @@ public class AddressController {
                                            @RequestHeader("Token") String token) {
         Long tokenUserId = userService.getUserByToken(token).getId();
         address.setId(id);
-        return Response.of(ResponseMessage.OK.toString(), addressService.updateAddress(address, tokenUserId));
+        return Response.ok(addressService.updateAddress(address, tokenUserId));
     }
 
     @DeleteMapping("/address/{id}")
     public Response<Address> deleteAddress(@PathVariable("id") Long addressId,
                                            @RequestHeader("Token") String token) {
         Long tokenUserId = userService.getUserByToken(token).getId();
-        return Response.of(ResponseMessage.OK.toString(), addressService.deleteAddress(addressId, tokenUserId));
+        return Response.ok(addressService.deleteAddress(addressId, tokenUserId));
 
     }
 
