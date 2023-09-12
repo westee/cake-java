@@ -1,13 +1,14 @@
 package com.westee.cake.util;
 
 import com.alibaba.fastjson2.JSON;
-import okhttp3.FormBody;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import okio.ByteString;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -40,28 +41,32 @@ public class RequestUtil {
         return sb.toString();
     }
 
-    public String post(String url, Map<String, String> params, boolean isJsonPost, String token) throws IOException {
+    public static Object doPost(String url, Object params, HashMap<String, String> headers) throws IOException {
         RequestBody requestBody;
-        if (isJsonPost) {
-            String json = "";
-            if (params != null) {
-                json = JSON.toJSONString(params);
-            }
-            requestBody = RequestBody.create(json, MediaType.parse("application/json; charset=utf-8"));
-        } else {
-            FormBody.Builder formBody = new FormBody.Builder();
-            if (params != null) {
-                params.forEach(formBody::add);
-            }
-            requestBody = formBody.build();
+
+        String json = "";
+        if (params != null) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            json = objectMapper.writeValueAsString(params);
         }
-        Request request = new Request.Builder().url(url + "?access_token=" + token).post(requestBody).build();
-        try( Response response = client.newCall(request).execute()) {
+        requestBody = RequestBody.create(ByteString.encodeUtf8(json), MediaType.parse("application/json; charset=utf-8"));
+
+        Request.Builder requestBuilder = new Request.Builder().url(url)
+                .post(requestBody);
+
+        if (headers != null) {
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                requestBuilder.addHeader(entry.getKey(), entry.getValue());
+            }
+        }
+
+        Request request = requestBuilder.build();
+        try (Response response = client.newCall(request).execute()) {
             ResponseBody body = response.body();
             if(body == null) {
                 return "";
             }
-            return body.string();
+            return JSON.parse(body.string());
         }
     }
 }
