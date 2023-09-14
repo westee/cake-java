@@ -114,6 +114,10 @@
             <property name="useActualColumnNames" value="false"/>
             <generatedKey column="ID" sqlStatement="MySql" identity="true" />
         </table>
+        <table schema="cake" tableName="WX_EXPRESS" domainObjectName="WxExpress">
+            <property name="useActualColumnNames" value="false"/>
+            <generatedKey column="ID" sqlStatement="MySql" identity="true" />
+        </table>
 
     </context>
 </generatorConfiguration>
