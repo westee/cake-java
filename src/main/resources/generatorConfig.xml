@@ -118,6 +118,10 @@
             <property name="useActualColumnNames" value="false"/>
             <generatedKey column="ID" sqlStatement="MySql" identity="true" />
         </table>
+        <table schema="cake" tableName="EXPRESS_INFO" domainObjectName="ExpressInfo">
+            <property name="useActualColumnNames" value="false"/>
+            <generatedKey column="ID" sqlStatement="MySql" identity="true" />
+        </table>
 
     </context>
 </generatorConfiguration>
