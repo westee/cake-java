@@ -12,6 +12,7 @@ import com.westee.cake.generate.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -36,6 +37,12 @@ public class GoodsImageService {
         checkGoodsBelongToUser(goodsImageExample, token);
         goodsImage.setDeleted(1);
         goodsImageMapper.updateByExampleSelective(goodsImage, goodsImageExample);
+    }
+
+    public List<GoodsImage> getGoodsImage(Long goodsId) {
+        GoodsImageExample goodsImageExample = new GoodsImageExample();
+        goodsImageExample.createCriteria().andOwnerGoodsIdEqualTo(goodsId).andDeletedEqualTo(0);
+        return goodsImageMapper.selectByExample(goodsImageExample);
     }
 
     public void checkGoodsBelongToUser(GoodsImageExample example, String token) {
