@@ -1,5 +1,7 @@
 package com.westee.cake.generate;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.Serializable;
 import java.util.Date;
 
@@ -47,6 +49,7 @@ public class WxExpress implements Serializable {
      *
      * @mbg.generated Thu Sep 14 13:00:52 CST 2023
      */
+    @JsonProperty("wx_store_id")
     private String wxStoreId;
 
     /**
@@ -56,6 +59,7 @@ public class WxExpress implements Serializable {
      *
      * @mbg.generated Thu Sep 14 13:00:52 CST 2023
      */
+    @JsonProperty("wx_order_id")
     private String wxOrderId;
 
     /**
@@ -65,6 +69,7 @@ public class WxExpress implements Serializable {
      *
      * @mbg.generated Thu Sep 14 13:00:52 CST 2023
      */
+    @JsonProperty("store_order_id")
     private String storeOrderId;
 
     /**
@@ -74,6 +79,7 @@ public class WxExpress implements Serializable {
      *
      * @mbg.generated Thu Sep 14 13:00:52 CST 2023
      */
+    @JsonProperty("service_trans_id")
     private String serviceTransId;
 
     /**
@@ -101,6 +107,7 @@ public class WxExpress implements Serializable {
      *
      * @mbg.generated Thu Sep 14 13:00:52 CST 2023
      */
+    @JsonProperty("trans_order_id")
     private String transOrderId;
 
     /**
@@ -110,6 +117,7 @@ public class WxExpress implements Serializable {
      *
      * @mbg.generated Thu Sep 14 13:00:52 CST 2023
      */
+    @JsonProperty("order_status")
     private String orderStatus;
 
     /**

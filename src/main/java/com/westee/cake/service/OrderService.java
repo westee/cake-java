@@ -11,6 +11,7 @@ import com.westee.cake.dao.MyShoppingCartMapper;
 import com.westee.cake.data.GoodsInfo;
 import com.westee.cake.data.OrderGoodsVO;
 import com.westee.cake.data.OrderInfo;
+import com.westee.cake.entity.ExpressCreate;
 import com.westee.cake.entity.GoodsWithNumber;
 import com.westee.cake.entity.OrderPickupStatus;
 import com.westee.cake.entity.OrderResponse;
@@ -23,12 +24,14 @@ import com.westee.cake.generate.*;
 import com.westee.cake.mapper.MyOrderMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -67,7 +70,12 @@ public class OrderService {
     private final WechatPayService wechatPayService;
 
     private final MyShoppingCartMapper myShoppingCartMapper;
+
     private final UserService userService;
+
+    private final WechatExpressService wechatExpressService;
+
+    private final RabbitTemplate rabbitTemplate;
 
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
@@ -77,7 +85,7 @@ public class OrderService {
                         AddressMapper addressMapper,
                         UserMapper userMapper, UserCouponMapper userCouponMapper, CouponMapper couponMapper,
                         WechatPayService wechatPayService, MyShoppingCartMapper myShoppingCartMapper,
-                        UserService userService) {
+                        UserService userService, WechatExpressService wechatExpressService, RabbitTemplate rabbitTemplate) {
         this.shopMapper = shopMapper;
         this.orderMapper = orderMapper;
         this.goodsService = goodsService;
@@ -91,11 +99,14 @@ public class OrderService {
         this.wechatPayService = wechatPayService;
         this.myShoppingCartMapper = myShoppingCartMapper;
         this.userService = userService;
+        this.wechatExpressService = wechatExpressService;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     /**
      * 减库存 使用优惠券 扣款
      * 插入order order_goods
+     * 微信支付时需要在回调成功后创建快递订单
      *
      * @param orderInfo { orderId, addressId, List<GoodsInfo> goods }
      * @param userId    用户id
@@ -122,6 +133,7 @@ public class OrderService {
         if (Objects.equals(requestOrder.getPayType(), PayType.BALANCE.getName())) {  // 余额支付
             deductUserMoney(userId, finalPrice);
             deductStock(orderInfo);
+            addDeliveryToMQ(requestOrder, idToGoodsMap, finalPrice, orderInfo, user.getWxOpenId(), orderNo);
             return new OrderResponseWithPayInfo(generateResponse(createdOrder, idToGoodsMap, orderInfo.getGoods()));
 
         } else {    //  微信支付 回调成功后扣减库存
@@ -147,6 +159,58 @@ public class OrderService {
             }
             return orderResponseWithPayInfo;
         }
+    }
+
+    /**
+     * 到店
+     * 立即取货
+     * 预约取货
+     * 到店不需要特殊操作，只需要显示取货时间和取货码
+     * <p>
+     * 外送
+     * 立即送货  直接调用外卖接口开始送货
+     * 预约取货  到时间取货
+     *
+     * @param order        取货时间，如果为空则立即送货; 取货方式 0 到店； 1外送
+     * @param idToGoodsMap
+     */
+    public void addDeliveryToMQ(OrderTable order, Map<Long, Goods> idToGoodsMap, BigDecimal finalPrice,
+                                OrderInfo orderInfo, String openid, String orderNo) {
+        Date appointmentTime = order.getPickUpTime();
+
+        if (Objects.equals(order.getPickupType(), OrderPickupStatus.EXPRESS.getValue())) {
+            ExpressCreate expressCreate = wechatExpressService.collectExpressInfo(idToGoodsMap, finalPrice, orderInfo, openid, orderNo);
+            ExpressInfo expressInfo = wechatExpressService.insertExpressInfo(expressCreate, orderNo);
+            if (Objects.isNull(appointmentTime)) {
+                System.out.println("添加到立即队列中");
+                sendOrder(expressInfo);
+            } else {
+                System.out.println("添加到延迟队列中");
+                System.out.println(appointmentTime);
+                // 预约配送时间
+                if (appointmentTime.getTime() < new Date().getTime()) {
+                    throw HttpException.badRequest("派送时间应该晚于当前时间");
+                }
+                sendDelayedOrder(appointmentTime, expressInfo);
+            }
+        }
+    }
+
+    public void sendOrder(ExpressInfo expressInfo) {
+        rabbitTemplate.convertAndSend("orderExchange", "orderRoutingKey", expressInfo, message -> {
+            message.getMessageProperties().setExpiration("60000");// 设置消息过期时间，单位毫秒
+            message.getMessageProperties().setMessageId(expressInfo.getWxOrderNo());// 设置消息过期时间，单位毫秒
+            return message;
+        });
+    }
+
+    public void sendDelayedOrder(Date pickUpTime, ExpressInfo expressInfo) {
+        rabbitTemplate.convertAndSend("orderExchange", "orderDelayRoutingKey", expressInfo, message -> {
+            message.getMessageProperties().setExpiration(String.valueOf(getMilSecond(pickUpTime)));// 设置消息过期时间，单位毫秒
+            message.getMessageProperties().setMessageId(expressInfo.getWxOrderNo());// 设置消息过期时间，单位毫秒
+//            message.getMessageProperties().setDelay(orderNo);// 设置消息过期时间，单位毫秒
+            return message;
+        });
     }
 
     /**
@@ -752,6 +816,12 @@ public class OrderService {
                 userCouponMapper.updateByPrimaryKey(userCoupon);
             }
         }
+    }
+
+    public long getMilSecond(Date pickupTime) {
+        long deliveryTime = pickupTime.getTime();
+        // 计算过期时间的毫秒数
+        return deliveryTime - System.currentTimeMillis();
     }
 
     public enum PayType {
