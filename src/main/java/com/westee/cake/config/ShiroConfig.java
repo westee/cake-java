@@ -8,7 +8,6 @@ import com.westee.cake.realm.LoginType;
 import com.westee.cake.realm.MyModularRealmAuthenticator;
 import com.westee.cake.realm.UserPasswordRealm;
 import com.westee.cake.realm.WechatLoginRealm;
-import com.westee.cake.service.UserService;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.credential.CredentialsMatcher;
 import org.apache.shiro.authc.pam.AtLeastOneSuccessfulStrategy;
@@ -23,6 +22,7 @@ import org.apache.shiro.web.mgt.CookieRememberMeManager;
 import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
 import org.apache.shiro.web.servlet.SimpleCookie;
 import org.apache.shiro.web.session.mgt.DefaultWebSessionManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -36,6 +36,8 @@ import java.util.Map;
 
 @Configuration
 public class ShiroConfig implements WebMvcConfigurer {
+    @Autowired
+    WxPayConfig wxPayConfig;
     /**
      * TODO 尚未配置好所有jwt接口
      */
@@ -164,7 +166,7 @@ public class ShiroConfig implements WebMvcConfigurer {
     public CredentialsMatcher credentialsMatcher() {
         return (authenticationToken, authenticationInfo) -> {
             String submittedPassword = new String((char[])authenticationToken.getCredentials());
-            String encryptedPassword = new Sha256Hash(submittedPassword, UserService.salt).toString();
+            String encryptedPassword = new Sha256Hash(submittedPassword, wxPayConfig.getSALT()).toString();
             String storedPassword = (String)authenticationInfo.getCredentials();
             return encryptedPassword.equals(storedPassword);
         };

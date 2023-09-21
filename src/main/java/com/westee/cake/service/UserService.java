@@ -190,7 +190,6 @@ public class UserService {
     }
 
     public User updateUser(User user) {
-        checkAdmin(user.getId());
         userMapper.updateByPrimaryKeySelective(user);
         return user;
     }
