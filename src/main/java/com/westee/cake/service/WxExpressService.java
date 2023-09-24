@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -45,6 +46,12 @@ public class WxExpressService {
         wxExpress.setOrderStatus(express.get("order_status"));
         wxExpress.setUpdatedAt(new Date());
         wxExpressMapper.updateByExampleSelective(wxExpress, wxExpressExample);
+    }
+
+    public List<WxExpress> getExpressByWxOrderNo(String wxOrderNo) {
+        WxExpressExample wxExpressExample = new WxExpressExample();
+        wxExpressExample.createCriteria().andWxOrderIdEqualTo(wxOrderNo);
+        return wxExpressMapper.selectByExample(wxExpressExample);
     }
 
     public enum WxExpressOrderStatus {
