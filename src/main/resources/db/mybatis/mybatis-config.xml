@@ -38,6 +38,7 @@
         <mapper resource="db/mybatis/UserRoleMapper.xml"/>
         <mapper resource="db/mybatis/ExpressInfoMapper.xml"/>
         <mapper resource="db/mybatis/WxExpressMapper.xml"/>
+        <mapper resource="db/mybatis/ConfigMapper.xml"/>
 
         <mapper resource="db/mybatis/MyGoodsWithImageMapper.xml"/>
         <mapper resource="db/mybatis/ShoppingCartQuery.xml"/>
