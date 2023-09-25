@@ -31,14 +31,15 @@ public class WeChatPayCallBackService {
     private static final Logger log = LoggerFactory.getLogger(WeChatPayCallbackController.class);
 
     @Autowired
-    public WeChatPayCallBackService(OrderService orderService, ChargeService chargeService, UserService userService, WxPayUtil wxPayUtil) {
+    public WeChatPayCallBackService(OrderService orderService, ChargeService chargeService, UserService userService,
+                                    WxPayUtil wxPayUtil) {
         this.orderService = orderService;
         this.chargeService = chargeService;
         this.userService = userService;
         this.wxPayUtil = wxPayUtil;
     }
 
-    public HashMap<String, String> dealwithWeixinPay(HttpServletRequest request, HttpServletResponse response,
+    public HashMap<String, String> dealWithWeixinPay(HttpServletRequest request, HttpServletResponse response,
                                                      @RequestBody Map<String, Object> body) throws Exception {
         Transaction appCallBackVo = wxPayUtil.getNotificationParser(request, body, Transaction.class);
         log.warn("wx回调参数：{}", appCallBackVo);

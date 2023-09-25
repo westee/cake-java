@@ -52,7 +52,7 @@ public class WeChatPayCallbackController {
         log.warn("回调参数body {}", body);
         log.warn("回调参数request {}", request);
         try {
-            return weChatPayCallBackService.dealwithWeixinPay(request, response, body);
+            return weChatPayCallBackService.dealWithWeixinPay(request, response, body);
         } catch (Exception e) {
             log.error("回调解析错误： {}", e.getMessage());
             response.setStatus(500);
