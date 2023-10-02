@@ -41,11 +41,32 @@ public class RequestUtil {
         return sb.toString();
     }
 
-    public static Object doPost(String url, Object params, HashMap<String, String> headers) throws IOException {
-        RequestBody requestBody;
+    public static Object doSecurityPost(String url, Object params, HashMap<String, Object> headers) throws IOException {
+        try (Response response = post(url, params, headers)) {
 
+            ResponseBody body = response.body();
+            String respSign = response.header("Wechatmp-Signature");
+            String respAppId = response.header("Wechatmp-Appid");
+            String respTs = response.header("Wechatmp-TimeStamp");
+            String respSerial = response.header("Wechatmp-Serial");
+            if (body == null) {
+                return "";
+            }
+            if (respTs == null) {
+                return body.string();
+            }
+            String responseBodyString = body.string();
+            // {errcode=934016.0, errmsg=Order not exist rid: 65192df5-77a7d1b3-117973ad, _n=270eaa5fe4b9e68213ecbd37f417e10e, _appid=wx1e933945b62aebf8, _timestamp=1.696148981E9}
+            return AES_Dec.getRealRespResult(responseBodyString, Long.decode(respTs), url.split("\\?")[0]);
+        }
+    }
+
+    public static Response post(String url, Object params, HashMap<String, Object> headers) throws IOException {
+        RequestBody requestBody;
         String json = "";
-        if (params != null) {
+        if (params instanceof String) {
+            json = params.toString();
+        } else if (params != null) {
             ObjectMapper objectMapper = new ObjectMapper();
             json = objectMapper.writeValueAsString(params);
         }
@@ -53,17 +74,26 @@ public class RequestUtil {
 
         Request.Builder requestBuilder = new Request.Builder().url(url)
                 .post(requestBody);
+        if (headers != null) {
+            for (Map.Entry<String, Object> entry : headers.entrySet()) {
+                requestBuilder.addHeader(entry.getKey(), entry.getValue().toString());
+            }
+        }
 
         if (headers != null) {
-            for (Map.Entry<String, String> entry : headers.entrySet()) {
-                requestBuilder.addHeader(entry.getKey(), entry.getValue());
+            for (Map.Entry<String, Object> entry : headers.entrySet()) {
+                requestBuilder.addHeader(entry.getKey(), entry.getValue().toString());
             }
         }
 
         Request request = requestBuilder.build();
-        try (Response response = client.newCall(request).execute()) {
+        return client.newCall(request).execute();
+    }
+
+    public static Object doNormalPost(String url, Object params, HashMap<String, Object> headers) throws IOException {
+        try (Response response = post(url, params, headers)) {
             ResponseBody body = response.body();
-            if(body == null) {
+            if (body == null) {
                 return "";
             }
             return JSON.parse(body.string());
