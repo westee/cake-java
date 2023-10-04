@@ -1,12 +1,12 @@
 package com.westee.cake.service;
 
-import com.alibaba.fastjson2.JSON;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.JsonObject;
 import com.rabbitmq.client.Channel;
+import com.westee.cake.config.ApiSecurityConfig;
 import com.westee.cake.config.WeChatExpressConfig;
-import com.westee.cake.config.WxPayConfig;
-import com.westee.cake.controller.WeChatExpressController;
 import com.westee.cake.data.GoodsInfo;
 import com.westee.cake.data.OrderInfo;
 import com.westee.cake.entity.ExpressCargo;
@@ -20,6 +20,8 @@ import com.westee.cake.generate.ExpressInfoExample;
 import com.westee.cake.generate.ExpressInfoMapper;
 import com.westee.cake.generate.Goods;
 import com.westee.cake.global.GlobalVariable;
+import com.westee.cake.util.AES_Enc;
+import com.westee.cake.util.RSA_Sign;
 import com.westee.cake.util.RequestUtil;
 import com.westee.cake.validator.ExpressSendValidator;
 import org.slf4j.Logger;
@@ -45,22 +47,20 @@ public class WeChatExpressService {
     private final ExpressInfoMapper expressInfoMapper;
     private final GoodsImageService goodsImageService;
     private final WxExpressService wxExpressService;
-    private final WxPayConfig wxPayConfig;
 
     ObjectMapper objectMapper = new ObjectMapper();
 
-    private final String IMAGE_PREFIX = "https://baking.sun-rising.net/";
+    private final String IMAGE_PREFIX = "https://x.net/";
 
     private static final Logger log = LoggerFactory.getLogger(WeChatExpressService.class);
 
     @Autowired
-    public WeChatExpressService(AddressMapper addressMapper, GoodsImageService goodsImageService, WxPayConfig wxPayConfig,
+    public WeChatExpressService(AddressMapper addressMapper, GoodsImageService goodsImageService,
                                 ExpressInfoMapper expressInfoMapper, WxExpressService wxExpressService) {
         this.addressMapper = addressMapper;
         this.expressInfoMapper = expressInfoMapper;
         this.goodsImageService = goodsImageService;
         this.wxExpressService = wxExpressService;
-        this.wxPayConfig = wxPayConfig;
     }
 
     @RabbitListener(queues = "orderQueue")
@@ -74,14 +74,31 @@ public class WeChatExpressService {
         }
     }
 
-    public void doQueryExpress(String wxOrderId) {
+    public HashMap<String, Object> doQueryExpress(String wxOrderId) {
+        String url = getConcatUrl(ExpressInterface.QUERY_ORDER.getPath());
+        try {
+            HashMap<String, String> param = new HashMap<>();
+            param.put("wx_order_id", wxOrderId);
+            JsonObject data = AES_Enc.getData(param, ExpressInterface.QUERY_ORDER.getPath());
+            HashMap<String, Object> weChatHeader = getWeChatHeader(data, ExpressInterface.QUERY_ORDER.getPath());
+            String reqData = data.get("req_data").getAsString();
+            Object o = RequestUtil.doSecurityPost(url, reqData, weChatHeader);
+            HashMap<String, Object> res = objectMapper.convertValue(o, new TypeReference<HashMap<String, Object>>() {
+            });
+            if (res.get("errcode").equals(0)) {
+                return res;
+            }
+            throw HttpException.badRequest((String) res.get("errmsg"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void doCancelExpress(String wxOrderId, Integer reason) {
     }
 
     public HashMap<String, Object> estimateExpressFee(ExpressSendValidator expressInfo) {
-        return getExpressFeeResponse(expressInfo, WeChatExpressController.ExpressInterface.CALCULATE_PRICE.getPath());
+        return getExpressFeeResponse(expressInfo, ExpressInterface.CALCULATE_PRICE.getPath());
     }
 
     /**
@@ -90,14 +107,18 @@ public class WeChatExpressService {
      */
     public HashMap<String, Object> getExpressFeeResponse(ExpressSendValidator expressInfo, String path) {
         if (expressInfo.isValid()) {
-            String url = path + "?access_token=" + GlobalVariable.INSTANCE.getAccessToken();
+            String url = getConcatUrl(path);
             try {
-                Object o = RequestUtil.doPost(url, expressInfo, getWeChatHeader());
-                HashMap<String, Object> res = JSON.parseObject(o.toString());
-                if(res.get("errcode").equals(0)) {
+                JsonObject data = AES_Enc.getData(expressInfo, path);
+                String reqData = data.get("req_data").getAsString();
+                Object o = RequestUtil.doSecurityPost(url, reqData, getWeChatHeader(data, path));
+                HashMap<String, Object> res = objectMapper.convertValue(o, new TypeReference<HashMap<String, Object>>() {
+                });
+                Double code = (Double) res.get("errcode");
+                if (code == (0.0)) {
                     return res;
                 }
-                throw HttpException.badRequest("获取配送信息失败，请稍后重试");
+                throw HttpException.badRequest("获取配送信息失败："+ res.get("errmsg"));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -112,17 +133,19 @@ public class WeChatExpressService {
     public void doCreateExpress(String expressInfo) throws IOException {
         ExpressCreate expressCreate = objectMapper.readValue(expressInfo, ExpressCreate.class);
 
-        Object result = RequestUtil.doPost(WeChatExpressController.ExpressInterface.CREATE_ORDER.getPath() +
-                "?access_token=" + GlobalVariable.INSTANCE.getAccessToken(), expressCreate, getWeChatHeader());
+        Object result = RequestUtil.doNormalPost(getConcatUrl(ExpressInterface.CREATE_ORDER.getPath()), expressCreate,
+                getWeChatHeader(null, ExpressInterface.CREATE_ORDER.getPath()));
         System.out.println(result);
         wxExpressService.insertWxExpress(result);
     }
 
-    public HashMap<String, String> getWeChatHeader() {
-        HashMap<String, String> headers = new HashMap<>();
-        headers.put("Wechatmp-Appid", wxPayConfig.getAPPID());
-        headers.put("Wechatmp-TimeStamp", "");
-        headers.put("Wechatmp-Signature", "");
+    public HashMap<String, Object> getWeChatHeader(JsonObject data, String url) {
+        HashMap<String, Object> headers = new HashMap<>();
+        headers.put("Wechatmp-Appid", ApiSecurityConfig.getAppid());
+        String signature = RSA_Sign.getSign(data, url);
+        headers.put("Wechatmp-Signature", signature);
+        long localTs = data.get("req_ts").getAsLong();
+        headers.put("Wechatmp-TimeStamp", Long.toString(localTs));
         return headers;
     }
 
@@ -214,10 +237,32 @@ public class WeChatExpressService {
         return objectMapper.readValue(expressInfo, ExpressInfo.class);
     }
 
+    public String getConcatUrl(String basePath) {
+        return basePath + "?access_token=" + GlobalVariable.INSTANCE.getAccessToken();
+    }
+
     private int getGoodsWeight(Map<Long, Goods> idToGoodsMap) {
         AtomicInteger totalWeight = new AtomicInteger();
         idToGoodsMap.values().forEach(goods -> totalWeight.addAndGet(goods.getWeight()));
         return totalWeight.get();
     }
 
+    public enum ExpressInterface {
+        CALCULATE_PRICE("preaddorder"),
+        CREATE_ORDER("addorder"),
+        CANCEL_ORDER("cancelorder"),
+        QUERY_ORDER("queryorder");
+
+        private final String path;
+
+        ExpressInterface(String path) {
+            this.path = path;
+        }
+
+        public String getPath() {
+            String BASE_URL = "https://api.weixin.qq.com/cgi-bin/express/intracity/";
+//            String BASE_URL = "http://open.s.bingex.com";
+            return BASE_URL + path;
+        }
+    }
 }

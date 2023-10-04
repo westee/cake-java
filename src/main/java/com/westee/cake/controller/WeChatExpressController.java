@@ -30,7 +30,7 @@ public class WeChatExpressController {
 
     @PostMapping("/express")
     public Response<HashMap<String, Object>> createExpress(@RequestBody ExpressSendValidator expressInfo) {
-        return Response.ok(wechatExpressService.getExpressFeeResponse(expressInfo, ExpressInterface.CREATE_ORDER.getPath()));
+        return null;
     }
 
     @PostMapping("/express/cancel/{wxOrderId}")
@@ -42,27 +42,8 @@ public class WeChatExpressController {
 
     @PostMapping("/express/query/{wxOrderId}")
     public Response<Object> queryExpress(@PathVariable String wxOrderId) {
-        wechatExpressService.doQueryExpress(wxOrderId);
-        return Response.ok("todo");
-    }
-
-    public enum ExpressInterface {
-        CALCULATE_PRICE("preaddorder"),
-        CREATE_ORDER("addorder"),
-        CANCEL_ORDER("cancelorder"),
-        QUERY_ORDER("queryorder");
-
-        private final String path;
-
-        ExpressInterface(String path) {
-            this.path = path;
-        }
-
-        public String getPath() {
-            String BASE_URL = "https://api.weixin.qq.com/cgi-bin/express/intracity/";
-//            String BASE_URL = "http://open.s.bingex.com";
-            return BASE_URL + path;
-        }
+        HashMap<String, Object> stringObjectHashMap = wechatExpressService.doQueryExpress(wxOrderId);
+        return Response.ok(stringObjectHashMap);
     }
 
     enum ServiceTransId {
