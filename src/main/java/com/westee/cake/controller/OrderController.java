@@ -10,6 +10,7 @@ import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.OrderTable;
 import com.westee.cake.service.OrderService;
 import com.westee.cake.service.UserService;
+import com.westee.cake.validator.ExpressSendValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -73,10 +74,10 @@ public class OrderController {
      * 余额支付直接操作数据库退回余额
      * 微信支付退款则先发起请求，在成功的回调中处理数据
      *
-     * @param orderTradeNo
-     * @param orderId
-     * @param token
-     * @return
+     * @param orderTradeNo      微信订单id
+     * @param orderId           订单id
+     * @param token             用户token
+     * @return                  响应
      */
     @GetMapping("/order/refund")
     public Response<String> doOrderRefundByTradeNo(@RequestParam("orderTradeNo") String orderTradeNo,
@@ -97,14 +98,14 @@ public class OrderController {
                                                @RequestHeader("Token") String token) throws RuntimeException {
         Long userId = userService.getUserByToken(token).getId();
         return Response.of(ResponseMessage.OK.toString(), orderService.createOrder(
-                orderInfoAndOrderTable.getOrderInfo(),
-                orderInfoAndOrderTable.getOrderTable(), userId, couponId
-                 ));
+                orderInfoAndOrderTable, userId, couponId
+        ));
     }
 
     public static class OrderInfoAndOrderTable {
         OrderInfo orderInfo;
         OrderTable orderTable;
+        ExpressSendValidator express;
 
         public OrderInfoAndOrderTable() {
         }
@@ -123,6 +124,14 @@ public class OrderController {
 
         public void setOrderTable(OrderTable orderTable) {
             this.orderTable = orderTable;
+        }
+
+        public ExpressSendValidator getExpress() {
+            return express;
+        }
+
+        public void setExpress(ExpressSendValidator express) {
+            this.express = express;
         }
     }
 

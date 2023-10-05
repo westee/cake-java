@@ -6,6 +6,7 @@ import com.wechat.pay.java.service.payments.jsapi.model.PrepayWithRequestPayment
 import com.wechat.pay.java.service.refund.model.Amount;
 import com.wechat.pay.java.service.refund.model.Refund;
 import com.wechat.pay.java.service.refund.model.Status;
+import com.westee.cake.controller.OrderController;
 import com.westee.cake.dao.GoodsStockMapper;
 import com.westee.cake.dao.MyShoppingCartMapper;
 import com.westee.cake.data.GoodsInfo;
@@ -22,6 +23,7 @@ import com.westee.cake.entity.ShoppingCartStatus;
 import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.*;
 import com.westee.cake.mapper.MyOrderMapper;
+import com.westee.cake.validator.ExpressSendValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -30,8 +32,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -73,7 +75,11 @@ public class OrderService {
 
     private final UserService userService;
 
-    private final WechatExpressService wechatExpressService;
+    private final WxExpressService wxExpressService;
+
+    private final WeChatExpressService wechatExpressService;
+
+    private final ConfigService configService;
 
     private final RabbitTemplate rabbitTemplate;
 
@@ -85,7 +91,8 @@ public class OrderService {
                         AddressMapper addressMapper,
                         UserMapper userMapper, UserCouponMapper userCouponMapper, CouponMapper couponMapper,
                         WechatPayService wechatPayService, MyShoppingCartMapper myShoppingCartMapper,
-                        UserService userService, WechatExpressService wechatExpressService, RabbitTemplate rabbitTemplate) {
+                        UserService userService, WeChatExpressService wechatExpressService, WxExpressService wxExpressService,
+                        ConfigService configService, RabbitTemplate rabbitTemplate) {
         this.shopMapper = shopMapper;
         this.orderMapper = orderMapper;
         this.goodsService = goodsService;
@@ -99,7 +106,9 @@ public class OrderService {
         this.wechatPayService = wechatPayService;
         this.myShoppingCartMapper = myShoppingCartMapper;
         this.userService = userService;
+        this.wxExpressService = wxExpressService;
         this.wechatExpressService = wechatExpressService;
+        this.configService = configService;
         this.rabbitTemplate = rabbitTemplate;
     }
 
@@ -108,14 +117,18 @@ public class OrderService {
      * 插入order order_goods
      * 微信支付时需要在回调成功后创建快递订单
      *
-     * @param orderInfo { orderId, addressId, List<GoodsInfo> goods }
-     * @param userId    用户id
-     * @param couponId  优惠券id
+     * @param orderInfoAndOrderTable { OrderInfo   OrderTable  ExpressSendValidator }
+     * @param userId                 用户id
+     * @param couponId               优惠券id
      * @return OrderResponse
      * @throws RuntimeException 支付错误
      */
     @Transactional
-    public OrderResponseWithPayInfo createOrder(OrderInfo orderInfo, OrderTable requestOrder, Long userId, Long couponId) throws RuntimeException {
+    public OrderResponseWithPayInfo createOrder(OrderController.OrderInfoAndOrderTable orderInfoAndOrderTable,
+                                                Long userId, Long couponId) throws RuntimeException {
+        OrderInfo orderInfo = orderInfoAndOrderTable.getOrderInfo();
+        OrderTable requestOrder = orderInfoAndOrderTable.getOrderTable();
+        ExpressSendValidator express = orderInfoAndOrderTable.getExpress();
 
         Map<Long, Goods> idToGoodsMap = getIdTOGoodsMap(orderInfo.getGoods());
         BigDecimal totalPrice = calculateTotalPrice(orderInfo, idToGoodsMap);
@@ -124,7 +137,12 @@ public class OrderService {
         String orderNo = generateOrderNo();
 
         // 使用优惠券
-        BigDecimal finalPrice = Objects.isNull(couponId) ? totalPrice : useCoupon(userId, couponId, totalPrice);
+        BigDecimal priceAfterCoupon = Objects.isNull(couponId) ? totalPrice : useCoupon(userId, couponId, totalPrice);
+
+        // 获取邮费价格
+        Double estFee = calculatePriceWhenExpress(express, requestOrder.getPickupType(), priceAfterCoupon);
+        BigDecimal divide = BigDecimal.valueOf(estFee).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal finalPrice = priceAfterCoupon.add(divide);
 
         // 创建订单
         OrderTable createdOrder = createdOrderViaRpc(orderInfo, requestOrder, userId, orderNo, totalPrice, finalPrice, couponId);
@@ -162,6 +180,29 @@ public class OrderService {
     }
 
     /**
+     * 计算快递后的价格
+     *
+     * @param express               快递信息
+     * @param pickupType            取货方式
+     * @param priceAfterCoupon      使用优惠券后的价格
+     * @return                      添加运费后的价格
+     */
+    public Double calculatePriceWhenExpress(ExpressSendValidator express, Byte pickupType, BigDecimal priceAfterCoupon) {
+        Config config = configService.getConfig();
+        if(Objects.isNull(config)) {
+            throw HttpException.badRequest("尚未设置免邮价格");
+        }
+        if(priceAfterCoupon.compareTo(config.getFreeExpressAmount()) >= 0) {
+            return (double) 0;
+        }
+        if (Objects.equals(OrderPickupStatus.EXPRESS.getValue(), pickupType)) {
+            HashMap<String, Object> stringObjectHashMap = wechatExpressService.estimateExpressFee(express);
+            return (double) stringObjectHashMap.get("est_fee");
+        }
+        return (double) 0;
+    }
+
+    /**
      * 到店
      * 立即取货
      * 预约取货
@@ -172,7 +213,7 @@ public class OrderService {
      * 预约取货  到时间取货
      *
      * @param order        取货时间，如果为空则立即送货; 取货方式 0 到店； 1外送
-     * @param idToGoodsMap
+     * @param idToGoodsMap 商品id到商品的映射
      */
     public void addDeliveryToMQ(OrderTable order, Map<Long, Goods> idToGoodsMap, BigDecimal finalPrice,
                                 OrderInfo orderInfo, String openid, String orderNo) {
@@ -181,19 +222,27 @@ public class OrderService {
         if (Objects.equals(order.getPickupType(), OrderPickupStatus.EXPRESS.getValue())) {
             ExpressCreate expressCreate = wechatExpressService.collectExpressInfo(idToGoodsMap, finalPrice, orderInfo, openid, orderNo);
             ExpressInfo expressInfo = wechatExpressService.insertExpressInfo(expressCreate, orderNo);
-            if (Objects.isNull(appointmentTime)) {
-                System.out.println("添加到立即队列中");
-                sendOrder(expressInfo);
-            } else {
-                System.out.println("添加到延迟队列中");
-                System.out.println(appointmentTime);
-                // 预约配送时间
-                if (appointmentTime.getTime() < new Date().getTime()) {
-                    throw HttpException.badRequest("派送时间应该晚于当前时间");
-                }
-                sendDelayedOrder(appointmentTime, expressInfo);
-            }
+            chooseMQQueue(appointmentTime, expressInfo);
         }
+    }
+
+    public void chooseMQQueue(Date appointmentTime, ExpressInfo expressInfo) {
+        if (Objects.isNull(appointmentTime)) {
+            sendOrder(expressInfo);
+        } else {
+            // 预约配送时间
+            if (appointmentTime.getTime() < new Date().getTime()) {
+                throw HttpException.badRequest("派送时间应该晚于当前时间");
+            }
+            sendDelayedOrder(appointmentTime, expressInfo);
+        }
+    }
+
+    public void sendExpressIfExpress(Long orderId) {
+        OrderTable order = getOrderById(orderId);
+        ExpressInfo expressInfo = wechatExpressService.getCreateExpressInfoByOutTradeNo(order.getWxOrderNo());
+        Date appointmentTime = order.getPickUpTime();
+        chooseMQQueue(appointmentTime, expressInfo);
     }
 
     public void sendOrder(ExpressInfo expressInfo) {
@@ -221,7 +270,7 @@ public class OrderService {
         User user = userMapper.selectByPrimaryKey(userId);
         // 如果用户余额为空 或者 余额小于totalFee 提示余额不足 否则对用户的balance进行操作
         if (Objects.isNull(user.getBalance()) || user.getBalance().compareTo(totalFee) < 0) { // 如果用户的余额小于总费用，返回一个负数；
-            throw HttpException.badRequest("余额不足");
+            throw HttpException.badRequest("余额不足，请先充值");
         } else {
             BigDecimal newBalance = user.getBalance().subtract(totalFee);
             user.setBalance(newBalance);
@@ -277,7 +326,7 @@ public class OrderService {
         order.setUserId(userId);
         order.setPhone(requestOrder.getPhone());
         order.setDiscountId(couponId);
-        order.setPickUpTime(Objects.isNull(requestOrder.getPickUpTime()) ? new Date() : requestOrder.getPickUpTime());
+        order.setPickUpTime(requestOrder.getPickUpTime());
 
 
         if (PayType.MINIAPP.getName().equals(payType)) { // 微信支付先设置成等待确认付款状态 在回调中设置为已支付
@@ -313,6 +362,12 @@ public class OrderService {
         return order;
     }
 
+    /**
+     * 微信成功付款后减库存
+     * 如果是快递单 - 创建快递
+     *
+     * @param orderId 订单id
+     */
     public void deductStockAfterWxPaySuccessByOrderId(Long orderId) {
         log.warn("微信成功付款后减库存 orderId： {}", orderId);
         OrderGoodsExample orderGoodsExample = new OrderGoodsExample();
@@ -324,6 +379,8 @@ public class OrderService {
             goodsInfo.setNumber(orderGoods.getNumber().intValue());
             goodsStockMapper.deductStock(goodsInfo); //.deductStock(goodsInfo);
         });
+
+        sendExpressIfExpress(orderId);
     }
 
     public OrderResponse updateExpressInformation(OrderTable order, Long userId) {
@@ -480,9 +537,9 @@ public class OrderService {
     }
 
     /**
-     * @param userId
-     * @param orderTradeNo
-     * @param orderId
+     * @param userId            用户id
+     * @param orderTradeNo      订单微信id
+     * @param orderId           订单id
      */
     public void adminConfirmRefund(Long userId, String orderTradeNo, Long orderId, Boolean isWxCallback) {
         OrderTableExample orderTableExample = new OrderTableExample();
@@ -741,11 +798,15 @@ public class OrderService {
     /**
      * 发起微信退款请求
      * 管理员同意退款 或者主动退款再调用
+     * 外送订单暂不支持取消
      *
      * @param order OrderTable
      */
     public void cancelWXPayOrder(OrderTable order) {
         String payType = order.getPayType();
+        if (!wxExpressService.getExpressByWxOrderNo(order.getWxOrderNo()).isEmpty()) {
+            throw HttpException.forbidden("外送订单暂不支持取消订单");
+        }
         // 处理退款
         if (Objects.equals(payType, PayType.MINIAPP.getName())) {
             Refund refund = wechatPayService.createRefund(order.getWxOrderNo(), order.getFinalAmount());
