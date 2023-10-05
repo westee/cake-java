@@ -80,12 +80,6 @@ public class RequestUtil {
             }
         }
 
-        if (headers != null) {
-            for (Map.Entry<String, Object> entry : headers.entrySet()) {
-                requestBuilder.addHeader(entry.getKey(), entry.getValue().toString());
-            }
-        }
-
         Request request = requestBuilder.build();
         return client.newCall(request).execute();
     }
@@ -96,7 +90,8 @@ public class RequestUtil {
             if (body == null) {
                 return "";
             }
-            return JSON.parse(body.string());
+            String string = body.string();
+            return JSON.parse(string);
         }
     }
 }
