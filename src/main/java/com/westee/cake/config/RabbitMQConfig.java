@@ -14,7 +14,7 @@ import java.util.Map;
 public class RabbitMQConfig {
     /**
      * orderQueue是正常的订单队列，用于接收实时订单
-     * @return
+     * @return Queue
      */
     @Bean
     public Queue orderQueue() {
@@ -23,7 +23,7 @@ public class RabbitMQConfig {
 
     /**
      * orderDelayQueue是延迟队列，用于接收延迟订单
-     * @return
+     * @return Queue
      */
     @Bean
     public Queue orderDelayQueue() {
@@ -32,6 +32,11 @@ public class RabbitMQConfig {
         args.put("x-dead-letter-routing-key", "orderQueue");// 设置死信路由键
         args.put("x-message-ttl", 60000);// 设置消息过期时间，单位毫秒
         return new Queue("orderDelayQueue", true, false, false, args);
+    }
+
+    @Bean
+    public Queue orderCancelQueue() {
+        return new Queue("orderCancelQueue", true, false, false);
     }
 
     @Bean
@@ -47,5 +52,10 @@ public class RabbitMQConfig {
     @Bean
     public Binding orderDelayBinding() {
         return BindingBuilder.bind(orderDelayQueue()).to(orderExchange()).with("orderDelayRoutingKey");
+    }
+
+    @Bean
+    public Binding orderCancelBinding() {
+        return BindingBuilder.bind(orderCancelQueue()).to(orderExchange()).with("orderCancelRoutingKey");
     }
 }
