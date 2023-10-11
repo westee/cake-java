@@ -79,6 +79,8 @@ public class OrderService {
 
     private final WeChatExpressService wechatExpressService;
 
+    private final WeChatSubscribeService weChatSubscribeService;
+
     private final ConfigService configService;
 
     private final RabbitTemplate rabbitTemplate;
@@ -92,6 +94,7 @@ public class OrderService {
                         UserMapper userMapper, UserCouponMapper userCouponMapper, CouponMapper couponMapper,
                         WechatPayService wechatPayService, MyShoppingCartMapper myShoppingCartMapper,
                         UserService userService, WeChatExpressService wechatExpressService, WxExpressService wxExpressService,
+                        WeChatSubscribeService weChatSubscribeService,
                         ConfigService configService, RabbitTemplate rabbitTemplate) {
         this.shopMapper = shopMapper;
         this.orderMapper = orderMapper;
@@ -108,6 +111,7 @@ public class OrderService {
         this.userService = userService;
         this.wxExpressService = wxExpressService;
         this.wechatExpressService = wechatExpressService;
+        this.weChatSubscribeService = weChatSubscribeService;
         this.configService = configService;
         this.rabbitTemplate = rabbitTemplate;
     }
@@ -147,21 +151,23 @@ public class OrderService {
         // 创建订单
         OrderTable createdOrder = createdOrderViaRpc(orderInfo, requestOrder, userId, orderNo, totalPrice, finalPrice, couponId);
 
+        String goodsNames = idToGoodsMap.values().stream().map(Goods::getName).collect(Collectors.joining(","));
         // 扣款
         if (Objects.equals(requestOrder.getPayType(), PayType.BALANCE.getName())) {  // 余额支付
             deductUserMoney(userId, finalPrice);
             deductStock(orderInfo);
             addDeliveryToMQ(requestOrder, idToGoodsMap, finalPrice, orderInfo, user.getWxOpenId(), orderNo);
+            weChatSubscribeService.getParamsAndSendPlaceOrderSubscribe(user.getWxOpenId(), goodsNames, finalPrice);
             return new OrderResponseWithPayInfo(generateResponse(createdOrder, idToGoodsMap, orderInfo.getGoods()));
 
         } else {    //  微信支付 回调成功后扣减库存
-            String detail = idToGoodsMap.values().stream().map(Goods::getName).collect(Collectors.joining(","));
+            String goodsNamesDetail = idToGoodsMap.values().stream().map(Goods::getName).collect(Collectors.joining(","));
             OrderResponseWithPayInfo orderResponseWithPayInfo = new OrderResponseWithPayInfo();
 
             try {
                 // ... 调用接口
                 PrepayWithRequestPaymentResponse response = wechatPayService.
-                        prepayWithRequestPayment(detail, orderNo, finalPrice, user.getWxOpenId(),
+                        prepayWithRequestPayment(goodsNamesDetail, orderNo, finalPrice, user.getWxOpenId(),
                                 OrderType.GOODS);
                 orderResponseWithPayInfo.setPrepay(response);
 
@@ -182,17 +188,17 @@ public class OrderService {
     /**
      * 计算快递后的价格
      *
-     * @param express               快递信息
-     * @param pickupType            取货方式
-     * @param priceAfterCoupon      使用优惠券后的价格
-     * @return                      添加运费后的价格
+     * @param express          快递信息
+     * @param pickupType       取货方式
+     * @param priceAfterCoupon 使用优惠券后的价格
+     * @return 添加运费后的价格
      */
     public Double calculatePriceWhenExpress(ExpressSendValidator express, Byte pickupType, BigDecimal priceAfterCoupon) {
         Config config = configService.getConfig();
-        if(Objects.isNull(config)) {
+        if (Objects.isNull(config)) {
             throw HttpException.badRequest("尚未设置免邮价格");
         }
-        if(priceAfterCoupon.compareTo(config.getFreeExpressAmount()) >= 0) {
+        if (priceAfterCoupon.compareTo(config.getFreeExpressAmount()) >= 0) {
             return (double) 0;
         }
         if (Objects.equals(OrderPickupStatus.EXPRESS.getValue(), pickupType)) {
@@ -238,8 +244,7 @@ public class OrderService {
         }
     }
 
-    public void sendExpressIfExpress(Long orderId) {
-        OrderTable order = getOrderById(orderId);
+    public void sendExpressIfExpress(OrderTable order) {
         ExpressInfo expressInfo = wechatExpressService.getCreateExpressInfoByOutTradeNo(order.getWxOrderNo());
         Date appointmentTime = order.getPickUpTime();
         chooseMQQueue(appointmentTime, expressInfo);
@@ -364,14 +369,15 @@ public class OrderService {
 
     /**
      * 微信成功付款后减库存
+     * 微信成功付款后发送订阅消息
      * 如果是快递单 - 创建快递
      *
-     * @param orderId 订单id
+     * @param order 订单id
      */
-    public void deductStockAfterWxPaySuccessByOrderId(Long orderId) {
-        log.warn("微信成功付款后减库存 orderId： {}", orderId);
+    public void deductStockAfterWxPaySuccessByOrderId(OrderTable order, String subscribeGoodsName) {
+        log.warn("微信成功付款后减库存 orderId： {}", order.getId());
         OrderGoodsExample orderGoodsExample = new OrderGoodsExample();
-        orderGoodsExample.createCriteria().andOrderIdEqualTo(orderId);
+        orderGoodsExample.createCriteria().andOrderIdEqualTo(order.getId());
         List<OrderGoods> orderGoodsList = orderGoodsMapper.selectByExample(orderGoodsExample);
         orderGoodsList.forEach(orderGoods -> {
             GoodsInfo goodsInfo = new GoodsInfo();
@@ -380,7 +386,9 @@ public class OrderService {
             goodsStockMapper.deductStock(goodsInfo); //.deductStock(goodsInfo);
         });
 
-        sendExpressIfExpress(orderId);
+        sendExpressIfExpress(order);
+        weChatSubscribeService.getParamsAndSendPlaceOrderSubscribe(userService.getUserById(order.getUserId()).getWxOpenId(), subscribeGoodsName,
+                order.getFinalAmount());
     }
 
     public OrderResponse updateExpressInformation(OrderTable order, Long userId) {
@@ -537,9 +545,9 @@ public class OrderService {
     }
 
     /**
-     * @param userId            用户id
-     * @param orderTradeNo      订单微信id
-     * @param orderId           订单id
+     * @param userId       用户id
+     * @param orderTradeNo 订单微信id
+     * @param orderId      订单id
      */
     public void adminConfirmRefund(Long userId, String orderTradeNo, Long orderId, Boolean isWxCallback) {
         OrderTableExample orderTableExample = new OrderTableExample();
@@ -730,7 +738,6 @@ public class OrderService {
             s = generateRandomCode(4);
         }
         order.setPickupCode(s);
-
         orderMapper.insert(order);
     }
 

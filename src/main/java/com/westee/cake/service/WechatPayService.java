@@ -82,14 +82,15 @@ public class WechatPayService {
 
     /**
      * JSAPI支付下单，并返回JSAPI调起支付数据
-     * @param details               订单描述
-     * @param outTradeNo            id
-     * @param money                 金额
-     * @param openId                用户openid
-     * @param type                  购买商品 goods、充值 charge
+     *
+     * @param stringGoodsNamesOrChargeInfo 订单描述
+     * @param outTradeNo                   id
+     * @param money                        金额
+     * @param openId                       用户openid
+     * @param type                         购买商品 goods、充值 charge
      * @return PrepayWithRequestPaymentResponse 支付信息
      */
-    public PrepayWithRequestPaymentResponse prepayWithRequestPayment(String details, String outTradeNo,
+    public PrepayWithRequestPaymentResponse prepayWithRequestPayment(String stringGoodsNamesOrChargeInfo, String outTradeNo,
                                                                      BigDecimal money, String openId, OrderType type) {
         PrepayRequest request = new PrepayRequest();
 
@@ -102,11 +103,11 @@ public class WechatPayService {
         log.warn("request NotifyUrl: {}", wxPayConfig.getPayNotifyUrl());
         request.setNotifyUrl(wxPayConfig.getPayNotifyUrl());
         request.setAmount(amount);
-        request.setAttach(type.getName());
+        request.setAttach(type.getName() + "@" + stringGoodsNamesOrChargeInfo);  //  type@goodsNamesString  回调成功后使用,@分隔
         request.setAppid(wxPayConfig.getAPPID());
         request.setMchid(wxPayConfig.getMCHID());
         request.setOutTradeNo(outTradeNo);
-        request.setDescription(details);
+        request.setDescription(stringGoodsNamesOrChargeInfo);
 
         Payer payer = new Payer();
         payer.setOpenid(openId);
