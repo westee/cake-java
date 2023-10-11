@@ -45,8 +45,8 @@ public class ChargeService {
      * 计算更新用户总余额
      * 新建一条充值记录
      *
-     * @param chargeId  充值金额
-     * @param userId 用户id
+     * @param chargeId 充值金额
+     * @param userId   用户id
      * @return 充值记录
      */
     public PrepayWithRequestPaymentResponse charge(int chargeId, Long userId) throws Exception {
@@ -86,11 +86,11 @@ public class ChargeService {
     }
 
     public PageResponse<Charge> doGetChargeList(Long userId, Integer pageNum, Integer pageSize, boolean isAdmin) {
-        if(isAdmin) {
+        if (isAdmin) {
             userService.checkAdmin(userId);
         }
         ChargeExample chargeExample = new ChargeExample();
-        if(!isAdmin) {
+        if (!isAdmin) {
             chargeExample.createCriteria().andUserIdEqualTo(userId);
         }
         chargeExample.setOrderByClause("`CREATED_AT` DESC");
