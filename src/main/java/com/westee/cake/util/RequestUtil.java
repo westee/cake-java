@@ -1,6 +1,7 @@
 package com.westee.cake.util;
 
 import com.alibaba.fastjson2.JSON;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -61,14 +62,18 @@ public class RequestUtil {
         }
     }
 
-    public static Response post(String url, Object params, HashMap<String, Object> headers) throws IOException {
+    public static Response post(String url, Object params, HashMap<String, Object> headers)  {
         RequestBody requestBody;
         String json = "";
         if (params instanceof String) {
             json = params.toString();
         } else if (params != null) {
             ObjectMapper objectMapper = new ObjectMapper();
-            json = objectMapper.writeValueAsString(params);
+            try {
+                json = objectMapper.writeValueAsString(params);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
         }
         requestBody = RequestBody.create(ByteString.encodeUtf8(json), MediaType.parse("application/json; charset=utf-8"));
 
@@ -81,16 +86,25 @@ public class RequestUtil {
         }
 
         Request request = requestBuilder.build();
-        return client.newCall(request).execute();
+        try {
+            return client.newCall(request).execute();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public static Object doNormalPost(String url, Object params, HashMap<String, Object> headers) throws IOException {
+    public static Object doNormalPost(String url, Object params, HashMap<String, Object> headers) {
         try (Response response = post(url, params, headers)) {
             ResponseBody body = response.body();
             if (body == null) {
                 return "";
             }
-            String string = body.string();
+            String string = null;
+            try {
+                string = body.string();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
             return JSON.parse(string);
         }
     }
