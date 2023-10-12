@@ -23,6 +23,6 @@ public class ExpressGoodsTypeController {
 
     @GetMapping("expressGoodsType")
     public Response<List<ExpressGoodsType>> getExpressGoodsTypeList() {
-        return Response.of(expressGoodsTypeService.getExpressGoodsTypes());
+        return Response.ok(expressGoodsTypeService.getExpressGoodsTypes());
     }
 }
