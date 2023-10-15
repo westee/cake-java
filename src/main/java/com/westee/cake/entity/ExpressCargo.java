@@ -6,51 +6,51 @@ import java.util.List;
 
 public class ExpressCargo {
     @JsonProperty("cargo_name")
-    private String cargoName;
+    private String cargo_name;
     @JsonProperty("cargo_type")
-    private int cargoType;
+    private int cargo_type;
     @JsonProperty("cargo_num")
-    private int cargoNum;
+    private int cargo_num;
     @JsonProperty("cargo_price")
-    private int cargoPrice;
+    private int cargo_price;
     @JsonProperty("cargo_weight")
-    private int cargoWeight;
+    private int cargo_weight;
     @JsonProperty("item_list")
-    private List<ExpressCargoItem> itemList;
+    private List<ExpressCargoItem> item_list;
 
     public ExpressCargo() {}
 
-    public ExpressCargo(String cargoName, int cargoType, int cargoNum, int cargoPrice,
-                 int cargoWeight, List<ExpressCargoItem> itemList) {
-        this.cargoName = cargoName;
-        this.cargoType = cargoType;
-        this.cargoNum = cargoNum;
-        this.cargoPrice = cargoPrice;
-        this.cargoWeight = cargoWeight;
-        this.itemList = itemList;
+    public ExpressCargo(String cargo_name, int cargo_type, int cargo_num, int cargo_price,
+                        int cargo_weight, List<ExpressCargoItem> item_list) {
+        this.cargo_name = cargo_name;
+        this.cargo_type = cargo_type;
+        this.cargo_num = cargo_num;
+        this.cargo_price = cargo_price;
+        this.cargo_weight = cargo_weight;
+        this.item_list = item_list;
     }
 
-    public void setCargoName(String cargoName) {
-        this.cargoName = cargoName;
+    public void setCargo_name(String cargo_name) {
+        this.cargo_name = cargo_name;
     }
 
-    public void setCargoType(int cargoType) {
-        this.cargoType = cargoType;
+    public void setCargo_type(int cargo_type) {
+        this.cargo_type = cargo_type;
     }
 
-    public void setCargoNum(int cargoNum) {
-        this.cargoNum = cargoNum;
+    public void setCargo_num(int cargo_num) {
+        this.cargo_num = cargo_num;
     }
 
-    public void setCargoPrice(int cargoPrice) {
-        this.cargoPrice = cargoPrice;
+    public void setCargo_price(int cargo_price) {
+        this.cargo_price = cargo_price;
     }
 
-    public void setCargoWeight(int cargoWeight) {
-        this.cargoWeight = cargoWeight;
+    public void setCargo_weight(int cargo_weight) {
+        this.cargo_weight = cargo_weight;
     }
 
-    public void setItemList(List<ExpressCargoItem> itemList) {
-        this.itemList = itemList;
+    public void setItem_list(List<ExpressCargoItem> item_list) {
+        this.item_list = item_list;
     }
 }

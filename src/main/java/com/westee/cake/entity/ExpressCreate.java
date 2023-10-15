@@ -4,91 +4,112 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ExpressCreate {
     @JsonProperty("wx_store_id")
-    private String wxStoreId;
+    private String wx_store_id;
     @JsonProperty("store_order_id")
-    private String storeOrderId;
+    private String store_order_id;
     @JsonProperty("user_openid")
-    private String userOpenid;
+    private String user_openid;
     @JsonProperty("user_lng")
-    private String userLng;
+    private String user_lng;
     @JsonProperty("user_lat")
-    private String userLat;
+    private String user_lat;
     @JsonProperty("user_address")
-    private String userAddress;
+    private String user_address;
     @JsonProperty("user_name")
-    private String userName;
+    private String user_name;
     @JsonProperty("user_phone")
-    private String userPhone;
+    private String user_phone;
     @JsonProperty("callback_url")
-    private String callbackUrl;
+    private String callback_url;
     @JsonProperty("use_sandbox")
-    private Integer useSandbox;
+    private Integer use_sandbox;
     @JsonProperty("order_detail_path")
-    private String orderDetailPath;
+    private String order_detail_path;
     @JsonProperty("cargo")
     private ExpressCargo cargo;
 
     public ExpressCreate() {}
 
-    public ExpressCreate(String storeOrderId, String userOpenid, String userLng, String userLat,
-                 String userAddress, String userName, String userPhone, String callbackUrl, ExpressCargo cargo) {
-        this.wxStoreId = storeOrderId;
-        this.storeOrderId = storeOrderId;
-        this.userOpenid = userOpenid;
-        this.userLng = userLng;
-        this.userLat = userLat;
-        this.userAddress = userAddress;
-        this.userName = userName;
-        this.userPhone = userPhone;
-        this.callbackUrl = callbackUrl;
+    public ExpressCreate(String wx_store_id, String store_order_id, String user_openid, String user_lng, String user_lat,
+                         String user_address, String user_name, String user_phone, String callback_url, ExpressCargo cargo) {
+        this.wx_store_id = wx_store_id;
+        this.store_order_id = store_order_id;
+        this.user_openid = user_openid;
+        this.user_lng = user_lng;
+        this.user_lat = user_lat;
+        this.user_address = user_address;
+        this.user_name = user_name;
+        this.user_phone = user_phone;
+        this.callback_url = callback_url;
         this.cargo = cargo;
     }
 
-    public void setWxStoreId(String wxStoreId) {
-        this.wxStoreId = wxStoreId;
+    public ExpressCreate(String wx_store_id, String store_order_id, String user_openid, String user_lng, String user_lat,
+                         String user_address, String user_name, String user_phone, String callback_url, Integer use_sandbox,
+                         String order_detail_path, ExpressCargo cargo) {
+        this.wx_store_id = wx_store_id;
+        this.store_order_id = store_order_id;
+        this.user_openid = user_openid;
+        this.user_lng = user_lng;
+        this.user_lat = user_lat;
+        this.user_address = user_address;
+        this.user_name = user_name;
+        this.user_phone = user_phone;
+        this.callback_url = callback_url;
+        this.use_sandbox = use_sandbox;
+        this.order_detail_path = order_detail_path;
+        this.cargo = cargo;
     }
 
-    public void setStoreOrderId(String storeOrderId) {
-        this.storeOrderId = storeOrderId;
+    public void setWx_store_id(String wx_store_id) {
+        this.wx_store_id = wx_store_id;
     }
 
-    public void setUserOpenid(String userOpenid) {
-        this.userOpenid = userOpenid;
+    public String getStore_order_id() {
+        return store_order_id;
     }
 
-    public void setUserLng(String userLng) {
-        this.userLng = userLng;
+    public void setStore_order_id(String store_order_id) {
+        this.store_order_id = store_order_id;
     }
 
-    public void setUserLat(String userLat) {
-        this.userLat = userLat;
+    public void setUser_openid(String user_openid) {
+        this.user_openid = user_openid;
     }
 
-    public void setUserAddress(String userAddress) {
-        this.userAddress = userAddress;
+    public void setUser_lng(String user_lng) {
+        this.user_lng = user_lng;
     }
 
-    public void setUserName(String userName) {
-        this.userName = userName;
+    public void setUser_lat(String user_lat) {
+        this.user_lat = user_lat;
     }
 
-    public void setUserPhone(String userPhone) {
-        this.userPhone = userPhone;
+    public void setUser_address(String user_address) {
+        this.user_address = user_address;
     }
 
-    public void setCallbackUrl(String callbackUrl) {
-        this.callbackUrl = callbackUrl;
+    public void setUser_name(String user_name) {
+        this.user_name = user_name;
+    }
+
+    public void setUser_phone(String user_phone) {
+        this.user_phone = user_phone;
+    }
+
+    public void setCallback_url(String callback_url) {
+        this.callback_url = callback_url;
     }
 
     public void setCargo(ExpressCargo cargo) {
         this.cargo = cargo;
     }
 
-    public void setUseSandbox(Integer useSandbox) {
-        this.useSandbox = useSandbox;
+    public void setUse_sandbox(Integer use_sandbox) {
+        this.use_sandbox = use_sandbox;
     }
 
-    public void setOrderDetailPath(String orderDetailPath) {
-        this.orderDetailPath = orderDetailPath;
+    public void setOrder_detail_path(String order_detail_path) {
+        this.order_detail_path = order_detail_path;
     }
 }

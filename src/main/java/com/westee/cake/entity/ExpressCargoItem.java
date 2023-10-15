@@ -4,29 +4,29 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ExpressCargoItem {
     @JsonProperty("item_name")
-    private String itemName;
+    private String item_name;
     @JsonProperty("count")
     private int count;
     @JsonProperty("item_pic_url")
-    private String itemPicUrl;
+    private String item_pic_url;
 
     public ExpressCargoItem(){}
 
-    public ExpressCargoItem(String itemName, int count, String itemPicUrl){
-        this.itemName=itemName;
+    public ExpressCargoItem(String item_name, int count, String item_pic_url){
+        this.item_name = item_name;
         this.count=count;
-        this.itemPicUrl=itemPicUrl;
+        this.item_pic_url = item_pic_url;
     }
 
-    public void setItemName(String itemName) {
-        this.itemName = itemName;
+    public void setItem_name(String item_name) {
+        this.item_name = item_name;
     }
 
     public void setCount(int count) {
         this.count = count;
     }
 
-    public void setItemPicUrl(String itemPicUrl) {
-        this.itemPicUrl = itemPicUrl;
+    public void setItem_pic_url(String item_pic_url) {
+        this.item_pic_url = item_pic_url;
     }
 }
