@@ -74,10 +74,10 @@ public class OrderController {
      * 余额支付直接操作数据库退回余额
      * 微信支付退款则先发起请求，在成功的回调中处理数据
      *
-     * @param orderTradeNo      微信订单id
-     * @param orderId           订单id
-     * @param token             用户token
-     * @return                  响应
+     * @param orderTradeNo 微信订单id
+     * @param orderId      订单id
+     * @param token        用户token
+     * @return 响应
      */
     @GetMapping("/order/refund")
     public Response<String> doOrderRefundByTradeNo(@RequestParam("orderTradeNo") String orderTradeNo,

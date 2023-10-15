@@ -1,5 +1,7 @@
 package com.westee.cake.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wechat.pay.java.core.exception.MalformedMessageException;
 import com.wechat.pay.java.core.exception.ServiceException;
 import com.wechat.pay.java.service.payments.jsapi.model.PrepayWithRequestPaymentResponse;
@@ -26,7 +28,6 @@ import com.westee.cake.mapper.MyOrderMapper;
 import com.westee.cake.validator.ExpressSendValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -82,8 +83,10 @@ public class OrderService {
     private final WeChatSubscribeService weChatSubscribeService;
 
     private final ConfigService configService;
+    // todo
+    private final OrderDeliveryScheduler orderDeliveryScheduler;
 
-    private final RabbitTemplate rabbitTemplate;
+    ObjectMapper objectMapper = new ObjectMapper();
 
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
@@ -95,7 +98,7 @@ public class OrderService {
                         WechatPayService wechatPayService, MyShoppingCartMapper myShoppingCartMapper,
                         UserService userService, WeChatExpressService wechatExpressService, WxExpressService wxExpressService,
                         WeChatSubscribeService weChatSubscribeService,
-                        ConfigService configService, RabbitTemplate rabbitTemplate) {
+                        ConfigService configService, OrderDeliveryScheduler orderDeliveryScheduler) {
         this.shopMapper = shopMapper;
         this.orderMapper = orderMapper;
         this.goodsService = goodsService;
@@ -113,7 +116,7 @@ public class OrderService {
         this.wechatExpressService = wechatExpressService;
         this.weChatSubscribeService = weChatSubscribeService;
         this.configService = configService;
-        this.rabbitTemplate = rabbitTemplate;
+        this.orderDeliveryScheduler = orderDeliveryScheduler;
     }
 
     /**
@@ -224,21 +227,20 @@ public class OrderService {
     public void addDeliveryToMQ(OrderTable order, Map<Long, Goods> idToGoodsMap, BigDecimal finalPrice,
                                 OrderInfo orderInfo, String openid, String orderNo) {
         Date appointmentTime = order.getPickUpTime();
-
         if (Objects.equals(order.getPickupType(), OrderPickupStatus.EXPRESS.getValue())) {
             ExpressCreate expressCreate = wechatExpressService.collectExpressInfo(idToGoodsMap, finalPrice, orderInfo, openid, orderNo);
             ExpressInfo expressInfo = wechatExpressService.insertExpressInfo(expressCreate, orderNo);
-            chooseMQQueue(appointmentTime, expressInfo);
+            chooseMQQueue(appointmentTime, expressCreate);
         }
     }
 
-    public void chooseMQQueue(Date appointmentTime, ExpressInfo expressInfo) {
+    public void chooseMQQueue(Date appointmentTime, ExpressCreate expressInfo) {
         if (Objects.isNull(appointmentTime)) {
-            sendOrder(expressInfo);
+            wechatExpressService.doCreateExpress(expressInfo);
         } else {
             // 预约配送时间
             if (appointmentTime.getTime() < new Date().getTime()) {
-                throw HttpException.badRequest("派送时间应该晚于当前时间");
+                throw HttpException.badRequest("派送时间不正确");
             }
             sendDelayedOrder(appointmentTime, expressInfo);
         }
@@ -247,24 +249,18 @@ public class OrderService {
     public void sendExpressIfExpress(OrderTable order) {
         ExpressInfo expressInfo = wechatExpressService.getCreateExpressInfoByOutTradeNo(order.getWxOrderNo());
         Date appointmentTime = order.getPickUpTime();
-        chooseMQQueue(appointmentTime, expressInfo);
+        ExpressCreate expressCreate = null;
+        try {
+            expressCreate = objectMapper.readValue(expressInfo.getInfo(), ExpressCreate.class);
+        } catch (JsonProcessingException e) {
+            log.warn("发送请求创建快递单前，将expressInfo转为ExpressCreate时失败：{}", e.getMessage());
+            throw new RuntimeException(e);
+        }
+        chooseMQQueue(appointmentTime, expressCreate);
     }
 
-    public void sendOrder(ExpressInfo expressInfo) {
-        rabbitTemplate.convertAndSend("orderExchange", "orderRoutingKey", expressInfo, message -> {
-            message.getMessageProperties().setExpiration("60000");// 设置消息过期时间，单位毫秒
-            message.getMessageProperties().setMessageId(expressInfo.getWxOrderNo());// 设置消息过期时间，单位毫秒
-            return message;
-        });
-    }
-
-    public void sendDelayedOrder(Date pickUpTime, ExpressInfo expressInfo) {
-        rabbitTemplate.convertAndSend("orderExchange", "orderDelayRoutingKey", expressInfo, message -> {
-            message.getMessageProperties().setExpiration(String.valueOf(getMilSecond(pickUpTime)));// 设置消息过期时间，单位毫秒
-            message.getMessageProperties().setMessageId(expressInfo.getWxOrderNo());// 设置消息过期时间，单位毫秒
-//            message.getMessageProperties().setDelay(orderNo);// 设置消息过期时间，单位毫秒
-            return message;
-        });
+    public void sendDelayedOrder(Date pickUpTime, ExpressCreate expressInfo) {
+        orderDeliveryScheduler.scheduleOrderDelivery(pickUpTime, expressInfo);
     }
 
     /**
@@ -347,7 +343,7 @@ public class OrderService {
             }
             order.setAddressId(orderInfo.getAddressId());
         }
-        //
+
         order.setTotalPrice(totalPrice);
         order.setFinalAmount(finalPrice);
 

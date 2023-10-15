@@ -1,10 +1,8 @@
 package com.westee.cake.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
-import com.rabbitmq.client.Channel;
 import com.westee.cake.config.ApiSecurityConfig;
 import com.westee.cake.config.WeChatExpressConfig;
 import com.westee.cake.data.GoodsInfo;
@@ -26,12 +24,9 @@ import com.westee.cake.util.RequestUtil;
 import com.westee.cake.validator.ExpressSendValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
@@ -47,6 +42,7 @@ public class WeChatExpressService {
     private final ExpressInfoMapper expressInfoMapper;
     private final GoodsImageService goodsImageService;
     private final WxExpressService wxExpressService;
+    private final OrderDeliveryScheduler orderDeliveryScheduler;
 
     ObjectMapper objectMapper = new ObjectMapper();
 
@@ -56,45 +52,59 @@ public class WeChatExpressService {
 
     @Autowired
     public WeChatExpressService(AddressMapper addressMapper, GoodsImageService goodsImageService,
-                                ExpressInfoMapper expressInfoMapper, WxExpressService wxExpressService) {
+                                ExpressInfoMapper expressInfoMapper, WxExpressService wxExpressService,
+                                OrderDeliveryScheduler orderDeliveryScheduler) {
         this.addressMapper = addressMapper;
         this.expressInfoMapper = expressInfoMapper;
         this.goodsImageService = goodsImageService;
         this.wxExpressService = wxExpressService;
-    }
-
-    @RabbitListener(queues = "orderQueue")
-    public void processDeliveryMessage(ExpressInfo expressInfo, Channel channel, Message message) {
-        try {
-            System.out.println("收到配送消息时间：" + new Date());
-            System.out.println("收到配送消息：" + expressInfo.getId());
-            doCreateExpress(expressInfo.getInfo());
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
+        this.orderDeliveryScheduler = orderDeliveryScheduler;
     }
 
     public HashMap<String, Object> doQueryExpress(String wxOrderId) {
         String url = getConcatUrl(ExpressInterface.QUERY_ORDER.getPath());
-        try {
-            HashMap<String, String> param = new HashMap<>();
-            param.put("wx_order_id", wxOrderId);
-            JsonObject data = AES_Enc.getData(param, ExpressInterface.QUERY_ORDER.getPath());
-            HashMap<String, Object> weChatHeader = getWeChatHeader(data, ExpressInterface.QUERY_ORDER.getPath());
-            String reqData = data.get("req_data").getAsString();
-            Object o = RequestUtil.doSecurityPost(url, reqData, weChatHeader);
-            HashMap<String, Object> res = objectMapper.convertValue(o, new TypeReference<HashMap<String, Object>>() {
-            });
-            if (res.get("errcode").equals(0)) {
-                return res;
-            }
-            throw HttpException.badRequest((String) res.get("errmsg"));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        HashMap<String, String> param = new HashMap<>();
+        param.put("wx_order_id", wxOrderId);
+        JsonObject data = AES_Enc.getData(param, ExpressInterface.QUERY_ORDER.getPath());
+        HashMap<String, Object> weChatHeader = getWeChatHeader(data, ExpressInterface.QUERY_ORDER.getPath());
+        String reqData = data.get("req_data").getAsString();
+        HashMap<String, Object> o = RequestUtil.doSecurityPost(url, reqData, weChatHeader);
+        if (o.get("errcode").equals(0)) {
+            return o;
         }
+        throw HttpException.badRequest((String) o.get("errmsg"));
     }
 
-    public void doCancelExpress(String wxOrderId, Integer reason) {
+    /**
+     * 取消订单
+     * 未创建订单
+     * 已创建订单
+     * @param wxOrderNo
+     * @param reason
+     * @return
+     */
+    public HashMap<String, Object> doCancelExpress(String wxOrderNo, Integer reason) {
+        // 从quartz的scheduler删除job
+        orderDeliveryScheduler.cancelOrderDelivery(wxOrderNo);
+
+        // 发送请求 派送中订单会扣款
+        String path = ExpressInterface.CANCEL_ORDER.getPath();
+        String url = getConcatUrl(path);
+        HashMap<String, Object> param = new HashMap<>();
+        param.put("wx_order_id", wxOrderNo);
+        param.put("cancel_reason_id", reason);
+        JsonObject data = AES_Enc.getData(param, path);
+        HashMap<String, Object> weChatHeader = getWeChatHeader(data, path);
+        String reqData = data.get("req_data").getAsString();
+        HashMap<String, Object> o = RequestUtil.doSecurityPost(url, reqData, weChatHeader);
+        if (o.get("errcode").equals(0)) {
+            return o;
+        }
+        throw HttpException.badRequest((String) o.get("errmsg"));
+    }
+
+    public void modifyDeliveryTime(String wxOrderNo, Date datetime) {
+        orderDeliveryScheduler.rescheduleOrderDelivery(wxOrderNo, datetime);
     }
 
     public HashMap<String, Object> estimateExpressFee(ExpressSendValidator expressInfo) {
@@ -108,20 +118,14 @@ public class WeChatExpressService {
     public HashMap<String, Object> getExpressFeeResponse(ExpressSendValidator expressInfo, String path) {
         if (expressInfo.isValid()) {
             String url = getConcatUrl(path);
-            try {
-                JsonObject data = AES_Enc.getData(expressInfo, path);
-                String reqData = data.get("req_data").getAsString();
-                Object o = RequestUtil.doSecurityPost(url, reqData, getWeChatHeader(data, path));
-                HashMap<String, Object> res = objectMapper.convertValue(o, new TypeReference<HashMap<String, Object>>() {
-                });
-                Double code = (Double) res.get("errcode");
-                if (code == (0.0)) {
-                    return res;
-                }
-                throw HttpException.badRequest("获取配送信息失败："+ res.get("errmsg"));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+            JsonObject data = AES_Enc.getData(expressInfo, path);
+            String reqData = data.get("req_data").getAsString();
+            HashMap<String, Object> o = RequestUtil.doSecurityPost(url, reqData, getWeChatHeader(data, path));
+            Double code = (Double) o.get("errcode");
+            if (code == (0.0)) {
+                return o;
             }
+            throw HttpException.badRequest("获取配送信息失败：" + o.get("errmsg"));
         }
         log.error("获取配送信息参数不正确: {}", expressInfo);
         throw HttpException.badRequest("获取配送信息参数不正确");
@@ -130,13 +134,18 @@ public class WeChatExpressService {
     /**
      * 创建快递单
      */
-    public void doCreateExpress(String expressInfo) throws IOException {
-        ExpressCreate expressCreate = objectMapper.readValue(expressInfo, ExpressCreate.class);
-
-        Object result = RequestUtil.doNormalPost(getConcatUrl(ExpressInterface.CREATE_ORDER.getPath()), expressCreate,
-                getWeChatHeader(null, ExpressInterface.CREATE_ORDER.getPath()));
+    public void doCreateExpress(ExpressCreate expressCreate) {
+        String path = ExpressInterface.CREATE_ORDER.getPath();
+        String url = getConcatUrl(path);
+        JsonObject data = AES_Enc.getData(expressCreate, path);
+        String reqData = data.get("req_data").getAsString();
+        HashMap<String, Object> result = null;
+        result = RequestUtil.doSecurityPost(url, reqData, getWeChatHeader(data, path));
         System.out.println(result);
-        wxExpressService.insertWxExpress(result);
+        Double code = (Double) result.get("errcode");
+        if (code == (0.0)) {
+            wxExpressService.insertWxExpress(result);
+        }
     }
 
     public HashMap<String, Object> getWeChatHeader(JsonObject data, String url) {
@@ -180,17 +189,17 @@ public class WeChatExpressService {
 
         ExpressCreate expressCreate = new ExpressCreate();
         Address address = addressMapper.selectByPrimaryKey(orderInfo.getAddressId());
-        expressCreate.setWxStoreId(WeChatExpressConfig.getWxStoreId());
-        expressCreate.setUserLat(address.getLatitude().toString());
-        expressCreate.setUserLng(address.getLongitude().toString());
-        expressCreate.setUserAddress(address.getAddress() + address.getName());
-        expressCreate.setUserPhone(address.getPhoneNumber());
-        expressCreate.setUserName(address.getContact());
-        expressCreate.setUserOpenid(openid);
-        expressCreate.setStoreOrderId(orderId);
-        expressCreate.setCallbackUrl(WeChatExpressConfig.getNotify());
-        expressCreate.setUseSandbox(1); // 1:使用沙箱环境; 使用测试沙箱环境，不需要充值运费就可以生成测试订单
-        expressCreate.setOrderDetailPath("pages/order/list");
+        expressCreate.setWx_store_id(WeChatExpressConfig.getWxStoreId());
+        expressCreate.setUser_lat(address.getLatitude().toString());
+        expressCreate.setUser_lng(address.getLongitude().toString());
+        expressCreate.setUser_address(address.getAddress() + address.getName());
+        expressCreate.setUser_phone(address.getPhoneNumber());
+        expressCreate.setUser_name(address.getContact());
+        expressCreate.setUser_openid(openid);
+        expressCreate.setStore_order_id(orderId);
+        expressCreate.setCallback_url(WeChatExpressConfig.getNotify());
+        expressCreate.setUse_sandbox(1); // 1:使用沙箱环境; 使用测试沙箱环境，不需要充值运费就可以生成测试订单
+        expressCreate.setOrder_detail_path("pages/order/list");
 //        expressCreate.setPath(openid);
 
         ExpressCargo expressCargo = new ExpressCargo();
@@ -198,21 +207,21 @@ public class WeChatExpressService {
                 .stream()
                 .map(Goods::getName)
                 .collect(Collectors.joining(","));
-        expressCargo.setCargoName(goodsNames);
-        expressCargo.setCargoPrice(finalPrice.intValue());
-        expressCargo.setCargoNum(finalPrice.intValue());
-        expressCargo.setCargoType(1);  // 1 快餐
-        expressCargo.setCargoWeight(getGoodsWeight(idToGoodsMap));  // 重量 克
+        expressCargo.setCargo_name(goodsNames);
+        expressCargo.setCargo_price(finalPrice.intValue());
+        expressCargo.setCargo_num(finalPrice.intValue());
+        expressCargo.setCargo_type(1);  // 1 快餐
+        expressCargo.setCargo_weight(getGoodsWeight(idToGoodsMap));  // 重量 克
         ArrayList<ExpressCargoItem> objects = new ArrayList<>();
         idToGoodsMap.values()
                 .forEach(goods -> {
                     ExpressCargoItem expressCargoItem = new ExpressCargoItem();
-                    expressCargoItem.setItemName(goods.getName());
-                    expressCargoItem.setItemPicUrl(IMAGE_PREFIX + goodsImageService.getGoodsImage(goods.getId()).get(0).getUrl());
+                    expressCargoItem.setItem_name(goods.getName());
+                    expressCargoItem.setItem_pic_url(IMAGE_PREFIX + goodsImageService.getGoodsImage(goods.getId()).get(0).getUrl());
                     expressCargoItem.setCount(getBuyGoodsNum(goods, orderInfo));
                     objects.add(expressCargoItem);
                 });
-        expressCargo.setItemList(objects);
+        expressCargo.setItem_list(objects);
 
         expressCreate.setCargo(expressCargo);
         return expressCreate;
@@ -256,6 +265,25 @@ public class WeChatExpressService {
         private final String path;
 
         ExpressInterface(String path) {
+            this.path = path;
+        }
+
+        public String getPath() {
+            String BASE_URL = "https://api.weixin.qq.com/cgi-bin/express/intracity/";
+//            String BASE_URL = "http://open.s.bingex.com";
+            return BASE_URL + path;
+        }
+    }
+
+    public enum ExpressCancelReason {
+        NO_NEED("1"),
+        INFO_ERR("2"),
+        NO_EXPRESSMAN("3"),
+        OTHER("99");
+
+        private final String path;
+
+        ExpressCancelReason(String path) {
             this.path = path;
         }
 

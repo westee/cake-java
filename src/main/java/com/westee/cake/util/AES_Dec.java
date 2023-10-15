@@ -11,9 +11,10 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.HashMap;
 
 public class AES_Dec {
-    public static Object getRealResp(JsonObject ctx, JsonObject resp) {
+    public static HashMap<String, Object> getRealResp(JsonObject ctx, JsonObject resp) {
         byte[] decryptedBytes = null;
         // 开发者本地信息
         String local_appid = ctx.get("local_appid").getAsString();
@@ -39,7 +40,7 @@ public class AES_Dec {
         System.arraycopy(authtagBytes, 0, new_dataBytes, dataBytes.length, authtagBytes.length);
         byte[] aadBytes = aad.getBytes(StandardCharsets.UTF_8);
         byte[] ivBytes = Base64.getDecoder().decode(iv);
-        Object realResp = null;
+        HashMap<String, Object> realResp = null;
         try {
             byte[] keyBytes = Base64.getDecoder().decode(local_sym_key);
             SecretKeySpec secretKey = new SecretKeySpec(keyBytes, "AES");
@@ -58,7 +59,7 @@ public class AES_Dec {
             String decryptedData = new String(decryptedBytes, StandardCharsets.UTF_8);
             JsonElement element = parser.parse(decryptedData);
             Gson gson = new Gson();
-            realResp = gson.fromJson(element, Object.class);
+            realResp = gson.fromJson(element, HashMap.class);
             long localTs = System.currentTimeMillis() / 1000;
             // 安全检查，根据业务实际需求判断
             if (element.getAsJsonObject().get("_appid").getAsString() == local_appid // appid不匹配
@@ -93,7 +94,7 @@ public class AES_Dec {
         return resp;
     }
 
-    public static Object getRealRespResult(String data, Long ts, String url) {
+    public static HashMap<String, Object> getRealRespResult(String data, Long ts, String url) {
         JsonObject resp = getResp(data, ts);
         JsonObject ctx = getCtx(url);
         return getRealResp(ctx, resp);

@@ -1,11 +1,11 @@
 package com.westee.cake.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.WxExpress;
 import com.westee.cake.generate.WxExpressExample;
 import com.westee.cake.generate.WxExpressMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,23 +20,40 @@ import java.util.Objects;
 @Service
 public class WxExpressService {
     private final WxExpressMapper wxExpressMapper;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private static final Logger log = LoggerFactory.getLogger(WxExpressService.class);
 
     @Autowired
     public WxExpressService(WxExpressMapper wxExpressMapper) {
         this.wxExpressMapper = wxExpressMapper;
     }
 
-    public void insertWxExpress(Object express) throws JsonProcessingException {
-        WxExpress wxExpress = objectMapper.readValue(express.toString(), WxExpress.class);
+    public void insertWxExpress(HashMap<String, Object> map) {
+        WxExpress wxExpress = new WxExpress();
+        wxExpress.setAppid(map.get("appid").toString());
+        wxExpress.setDistance(doubleToInt((double) map.get("distance")));
+        wxExpress.setStoreOrderId(map.get("store_order_id").toString());
+        wxExpress.setErrcode(doubleToInt((double) map.get("errcode")));
+        wxExpress.setWxStoreId(map.get("wx_store_id").toString());
+        wxExpress.setWxOrderId(map.get("wx_order_id").toString());
+        wxExpress.setErrmsg(map.get("errmsg").toString());
+        wxExpress.setServiceTransId(map.get("service_trans_id").toString());
+        wxExpress.setTransOrderId(map.get("trans_order_id").toString());
+        wxExpress.setFee(doubleToInt((double) map.get("fee")));
+
         wxExpress.setUpdatedAt(new Date());
         wxExpress.setCreatedAt(new Date());
         if (Objects.equals(wxExpress.getErrmsg(), "ok")) {
             wxExpress.setOrderStatus(WxExpressOrderStatus.ORDER_CREATED.getCode().toString());
             wxExpressMapper.insert(wxExpress);
         } else {
+            log.error("插入WxExpress时Errmsg错误：{}", wxExpress.getErrmsg() );
             throw HttpException.badRequest(wxExpress.getErrmsg());
         }
+    }
+
+    public Integer doubleToInt(Double d) {
+        return d.intValue();
     }
 
     public void updateWxExpress(HashMap<String, String> express) {
