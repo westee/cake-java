@@ -53,6 +53,12 @@ public class GoodsService {
         Shop shop = shopMapper.selectByPrimaryKey(shopId);
         if (shop != null) {
             GoodsExample goodsExample = new GoodsExample();
+            String statusString = "ok|deleted";
+            if(statusString.contains(status)) {
+                goodsExample.createCriteria().andStatusEqualTo(status);
+            } else {
+                goodsExample.createCriteria().andStockEqualTo(0);
+            }
             long count = goodsMapper.countByExample(goodsExample);
             long totalPage = count % pageSize == 0 ? count / pageSize : count / pageSize + 1;
             int offset = (pageNum - 1) * pageSize;

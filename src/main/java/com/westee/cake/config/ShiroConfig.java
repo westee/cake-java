@@ -8,6 +8,7 @@ import com.westee.cake.realm.LoginType;
 import com.westee.cake.realm.MyModularRealmAuthenticator;
 import com.westee.cake.realm.UserPasswordRealm;
 import com.westee.cake.realm.WechatLoginRealm;
+import jakarta.servlet.Filter;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.credential.CredentialsMatcher;
 import org.apache.shiro.authc.pam.AtLeastOneSuccessfulStrategy;
@@ -27,7 +28,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import javax.servlet.Filter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;

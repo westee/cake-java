@@ -1,10 +1,10 @@
 package com.westee.cake.controller;
 
 import com.westee.cake.exceptions.AESException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletRequest;
 import java.security.MessageDigest;
 import java.util.Arrays;
 

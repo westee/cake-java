@@ -3,15 +3,14 @@ package com.westee.cake.realm;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.westee.cake.entity.Response;
 import com.westee.cake.exceptions.HttpException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.web.filter.authc.AuthenticatingFilter;
-
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 public class JWTAuthFilter extends AuthenticatingFilter {
 

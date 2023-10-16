@@ -10,6 +10,8 @@
         <result column="PRICE" jdbcType="DECIMAL" property="price" />
         <result column="VIP_PRICE" jdbcType="DECIMAL" property="vipPrice" />
         <result column="STOCK" jdbcType="BIGINT" property="stock" />
+        <result column="WEIGHT" jdbcType="BIGINT" property="weight" />
+        <result column="GOODS_TYPE" jdbcType="BIGINT" property="goodsType" />
         <result column="CREATED_AT" jdbcType="TIMESTAMP" property="createdAt" />
         <result column="UPDATED_AT" jdbcType="TIMESTAMP" property="updatedAt" />
         <collection property="images" ofType="java.lang.String" javaType="java.util.List">
@@ -29,6 +31,8 @@
             g.STOCK,
             g.IMG_URL,
             g.SHOP_ID,
+            g.WEIGHT,
+            g.GOODS_TYPE,
             g.CREATED_AT,
             g.UPDATED_AT,
             gi.URL  AS images
@@ -57,6 +61,8 @@
             g.STOCK,
             g.IMG_URL,
             g.SHOP_ID,
+            g.WEIGHT,
+            g.GOODS_TYPE,
             g.CREATED_AT,
             g.UPDATED_AT,
             gi.URL AS images
@@ -85,6 +91,8 @@
             g.STOCK,
             g.IMG_URL,
             g.SHOP_ID,
+            g.WEIGHT,
+            g.GOODS_TYPE,
             g.CREATED_AT,
             g.UPDATED_AT,
             gi.URL AS images

@@ -4,14 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.westee.cake.entity.Response;
 import com.westee.cake.exceptions.HttpException;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartException;
-
-import javax.servlet.http.HttpServletResponse;
 
 /**
  * @ControllerAdvice 注解用于定义全局异常处理的类，其作用是捕获控制器中发生的异常并进行统一处理。
