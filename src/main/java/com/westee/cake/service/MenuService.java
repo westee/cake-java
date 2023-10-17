@@ -2,9 +2,9 @@ package com.westee.cake.service;
 
 import com.westee.cake.dao.MenuDAO;
 import com.westee.cake.entity.Menu;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Resource;
 import java.util.List;
 
 @Service

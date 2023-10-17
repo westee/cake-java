@@ -19,12 +19,12 @@ import com.wechat.pay.java.service.refund.model.Refund;
 import com.westee.cake.config.WxPayConfig;
 import com.westee.cake.entity.OrderType;
 import com.westee.cake.util.WxPayUtil;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.math.BigDecimal;
 
 @Service
