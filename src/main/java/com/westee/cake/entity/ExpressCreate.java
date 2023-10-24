@@ -2,7 +2,9 @@ package com.westee.cake.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class ExpressCreate {
+import java.io.Serializable;
+
+public class ExpressCreate implements Serializable {
     @JsonProperty("wx_store_id")
     private String wx_store_id;
     @JsonProperty("store_order_id")

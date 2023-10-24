@@ -37,9 +37,6 @@ public class OrderDeliveryScheduler {
         Trigger trigger = OrderDeliveryTrigger.createTrigger(jobDetail, cronExpression);
         try {
             scheduler.scheduleJob(jobDetail, trigger);
-//            if (!scheduler.isShutdown()) {
-//                scheduler.start();
-//            }
         } catch (SchedulerException e) {
             log.error("延迟任务错误：{}", e.getMessage());
             throw new RuntimeException(e);

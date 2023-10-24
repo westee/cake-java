@@ -19,13 +19,11 @@ public class OrderDeliveryTrigger {
     }
 
     public static Trigger createTrigger(JobDetail jobDetail, Date startTime) {
-        System.out.println("trigger");
-        System.out.println(startTime);
         return TriggerBuilder.newTrigger()
                 .forJob(jobDetail)
                 .withSchedule(SimpleScheduleBuilder.simpleSchedule())
                 .withIdentity("orderDeliveryTrigger")
-                .withDescription("Trigger for order delivery")
+                .withDescription("指定时间订单派送触发器")
                 .startAt(startTime)
                 .build();
     }

@@ -2,9 +2,10 @@ package com.westee.cake.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class ExpressCargo {
+public class ExpressCargo implements Serializable {
     @JsonProperty("cargo_name")
     private String cargo_name;
     @JsonProperty("cargo_type")

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.westee.cake.config.WxPayConfig;
 import com.westee.cake.global.GlobalVariable;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +23,15 @@ public class Tick {
     @Autowired
     WxPayConfig wxPayConfig;
 
+    private final Scheduler scheduler;
+
+    @Autowired
+    public Tick(Scheduler scheduler) {
+        this.scheduler = scheduler;
+    }
+
     private static final Logger log = LoggerFactory.getLogger(Tick.class);
+    Logger monitorLogger = LoggerFactory.getLogger("message");
 
     @Lazy(false)
     @Scheduled(fixedDelay=90, timeUnit = TimeUnit.MINUTES)   //每90分钟执行一次
@@ -36,11 +46,21 @@ public class Tick {
         String sendGet = RequestUtil.doGetRequest("https://api.weixin.qq.com/cgi-bin/token", hashMapParams);
         // 解析相应内容（转换成json对象）
         ObjectMapper mapper = new ObjectMapper();
-        Map<String, String> stringStringMap = mapper.readValue(sendGet, new TypeReference<Map<String, String>>() {
+        Map<String, String> stringStringMap = mapper.readValue(sendGet, new TypeReference<>() {
         });
         //拿到access_token
         String accessToken = stringStringMap.get("access_token");
         GlobalVariable.INSTANCE.setAccessToken(accessToken);
         log.info("获得accessToken {}", accessToken);
+        monitorLogger.info("获得accessToken {}", accessToken);
+        try {
+            if(!scheduler.isStarted()) {
+                scheduler.start();
+                scheduler.resumeAll();
+            }
+        } catch (SchedulerException e) {
+            log.error("定时任务启动错误 in util Tick：{}", e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 }
