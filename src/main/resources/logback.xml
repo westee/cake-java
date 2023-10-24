@@ -23,6 +23,23 @@
         </encoder>
     </appender>
 
+    <appender name="file—message" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>INFO</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <FileNamePattern>${LOG_HOME}/cake-message-log-%d{yyyy-MM-dd}.%i.log</FileNamePattern>
+            <MaxHistory>30</MaxHistory>
+            <MaxFileSize>10MB</MaxFileSize>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
     <appender name="CAKE-WARN-LOG-FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <filter class="ch.qos.logback.classic.filter.LevelFilter">
             <level>warn</level>
@@ -55,7 +72,12 @@
         </encoder>
     </appender>
 
-    <root level="WARN">
+    <logger name="message" additivity="false">
+        <!-- 添加appender -->
+        <appender-ref ref="file—message"/>
+    </logger>
+
+    <root level="INFO">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="CAKE-WARN-LOG-FILE"/>
         <appender-ref ref="CAKE-ERROR-LOG-FILE"/>
