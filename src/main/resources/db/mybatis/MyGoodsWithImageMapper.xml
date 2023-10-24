@@ -80,27 +80,26 @@
         limit #{offset} , #{limit}
     </select>
     <select id="getGoodsListWithImageByShopIdAndCategory" parameterType="java.util.Map" resultMap="BaseResultMap">
-        SELECT
-            g.ID,
-            g.NAME,
-            g.CATEGORY_ID,
-            g.DESCRIPTION,
-            g.DETAILS,
-            g.PRICE,
-            g.VIP_PRICE,
-            g.STOCK,
-            g.IMG_URL,
-            g.SHOP_ID,
-            g.WEIGHT,
-            g.GOODS_TYPE,
-            g.CREATED_AT,
-            g.UPDATED_AT,
-            gi.URL AS images
-        FROM
-            GOODS g
-            LEFT JOIN GOODS_IMAGE gi ON g.ID = gi.OWNER_GOODS_ID and gi.DELETED = 0
-        WHERE
-            g.SHOP_ID = #{id} and g.CATEGORY_ID = #{categoryId}
+        SELECT g.ID,
+               g.NAME,
+               g.CATEGORY_ID,
+               g.DESCRIPTION,
+               g.DETAILS,
+               g.PRICE,
+               g.VIP_PRICE,
+               g.STOCK,
+               g.IMG_URL,
+               g.SHOP_ID,
+               g.WEIGHT,
+               g.GOODS_TYPE,
+               g.CREATED_AT,
+               g.UPDATED_AT,
+               gi.URL AS images
+        FROM GOODS g
+                 LEFT JOIN GOODS_IMAGE gi ON g.ID = gi.OWNER_GOODS_ID and gi.DELETED = 0
+        WHERE g.SHOP_ID = #{id}
+          and g.CATEGORY_ID = #{categoryId}
+          and g.STATUS = 'ok'
     </select>
 
 </mapper>
