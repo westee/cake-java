@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.westee.cake.config.ApiSecurityConfig;
+import com.westee.cake.config.QiniuConfig;
 import com.westee.cake.config.WeChatExpressConfig;
 import com.westee.cake.data.GoodsInfo;
 import com.westee.cake.data.OrderInfo;
@@ -33,6 +34,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -43,22 +45,22 @@ public class WeChatExpressService {
     private final GoodsImageService goodsImageService;
     private final WxExpressService wxExpressService;
     private final OrderDeliveryScheduler orderDeliveryScheduler;
+    private final QiniuConfig qiniuConfig;
 
     ObjectMapper objectMapper = new ObjectMapper();
-
-    private final String IMAGE_PREFIX = "https://x.net/";
 
     private static final Logger log = LoggerFactory.getLogger(WeChatExpressService.class);
 
     @Autowired
     public WeChatExpressService(AddressMapper addressMapper, GoodsImageService goodsImageService,
                                 ExpressInfoMapper expressInfoMapper, WxExpressService wxExpressService,
-                                OrderDeliveryScheduler orderDeliveryScheduler) {
+                                OrderDeliveryScheduler orderDeliveryScheduler, QiniuConfig qiniuConfig) {
         this.addressMapper = addressMapper;
         this.expressInfoMapper = expressInfoMapper;
         this.goodsImageService = goodsImageService;
         this.wxExpressService = wxExpressService;
         this.orderDeliveryScheduler = orderDeliveryScheduler;
+        this.qiniuConfig = qiniuConfig;
     }
 
     public HashMap<String, Object> doQueryExpress(String wxOrderId) {
@@ -79,9 +81,10 @@ public class WeChatExpressService {
      * 取消订单
      * 未创建订单
      * 已创建订单
-     * @param wxOrderNo
-     * @param reason
-     * @return
+     *
+     * @param wxOrderNo         微信out_trade_no
+     * @param reason            取消订单理由
+     * @return                  微信响应
      */
     public HashMap<String, Object> doCancelExpress(String wxOrderNo, Integer reason) {
         // 从quartz的scheduler删除job
@@ -116,16 +119,11 @@ public class WeChatExpressService {
      * 将以预估价格进行扣费
      */
     public HashMap<String, Object> getExpressFeeResponse(ExpressSendValidator expressInfo, String path) {
-        if (expressInfo.isValid()) {
+        if (Objects.nonNull(expressInfo) && expressInfo.isValid()) {
             String url = getConcatUrl(path);
             JsonObject data = AES_Enc.getData(expressInfo, path);
             String reqData = data.get("req_data").getAsString();
-            HashMap<String, Object> o = RequestUtil.doSecurityPost(url, reqData, getWeChatHeader(data, path));
-            Double code = (Double) o.get("errcode");
-            if (code == (0.0)) {
-                return o;
-            }
-            throw HttpException.badRequest("获取配送信息失败：" + o.get("errmsg"));
+            return RequestUtil.doSecurityPost(url, reqData, getWeChatHeader(data, path));
         }
         log.error("获取配送信息参数不正确: {}", expressInfo);
         throw HttpException.badRequest("获取配送信息参数不正确");
@@ -139,9 +137,7 @@ public class WeChatExpressService {
         String url = getConcatUrl(path);
         JsonObject data = AES_Enc.getData(expressCreate, path);
         String reqData = data.get("req_data").getAsString();
-        HashMap<String, Object> result = null;
-        result = RequestUtil.doSecurityPost(url, reqData, getWeChatHeader(data, path));
-        System.out.println(result);
+        HashMap<String, Object> result = RequestUtil.doSecurityPost(url, reqData, getWeChatHeader(data, path));
         Double code = (Double) result.get("errcode");
         if (code == (0.0)) {
             wxExpressService.insertWxExpress(result);
@@ -217,7 +213,7 @@ public class WeChatExpressService {
                 .forEach(goods -> {
                     ExpressCargoItem expressCargoItem = new ExpressCargoItem();
                     expressCargoItem.setItem_name(goods.getName());
-                    expressCargoItem.setItem_pic_url(IMAGE_PREFIX + goodsImageService.getGoodsImage(goods.getId()).get(0).getUrl());
+                    expressCargoItem.setItem_pic_url(qiniuConfig.getIMAGE_PREFIX() + goodsImageService.getGoodsImage(goods.getId()).get(0).getUrl());
                     expressCargoItem.setCount(getBuyGoodsNum(goods, orderInfo));
                     objects.add(expressCargoItem);
                 });

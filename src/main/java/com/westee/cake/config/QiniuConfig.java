@@ -12,6 +12,7 @@ public class QiniuConfig {
     private String ACCESS_KEY;
     private String SECRET_KEY;
     private String BUCKET_NAME;
+    private String IMAGE_PREFIX;
 
     public String getACCESS_KEY() {
         return ACCESS_KEY;
@@ -35,5 +36,13 @@ public class QiniuConfig {
 
     public void setBUCKET_NAME(String BUCKET_NAME) {
         this.BUCKET_NAME = BUCKET_NAME;
+    }
+
+    public String getIMAGE_PREFIX() {
+        return IMAGE_PREFIX;
+    }
+
+    public void setIMAGE_PREFIX(String IMAGE_PREFIX) {
+        this.IMAGE_PREFIX = IMAGE_PREFIX;
     }
 }

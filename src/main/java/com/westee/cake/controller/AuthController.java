@@ -79,10 +79,8 @@ public class AuthController {
     }
 
     /**
-     *
-     * @param params {wxcode, avatar, name}
-     * @return
-     * @throws JsonProcessingException
+     * @param     params {wxcode, avatar, name}
+     * @return    登录信息
      */
     @GetMapping("/send-wxcode")
     public LoginResult sendWXCode(@RequestParam Map<String, String> params) throws JsonProcessingException {
@@ -114,11 +112,6 @@ public class AuthController {
     public LoginResult testToken() {
         UserToken userToken = new UserToken(LoginType.USER_PHONE, "111111", "111111");
         return shiroLogin(userToken, LoginType.USER_PHONE);
-    }
-
-    @GetMapping("/test")
-    public String test() {
-        return "123";
     }
 
     @GetMapping("/status")
@@ -166,7 +159,7 @@ public class AuthController {
             return LoginResult.fail("账号被冻结");
         } catch (AuthenticationException e) {
             return LoginResult.fail("用户名或密码不正确");
-        }catch (Exception e) {
+        } catch (Exception e) {
             return LoginResult.fail(e.getMessage());
         }
     }
