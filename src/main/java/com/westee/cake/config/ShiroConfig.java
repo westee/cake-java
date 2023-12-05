@@ -18,11 +18,15 @@ import org.apache.shiro.crypto.hash.Sha256Hash;
 import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.realm.Realm;
+import org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor;
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.web.mgt.CookieRememberMeManager;
 import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
 import org.apache.shiro.web.servlet.SimpleCookie;
 import org.apache.shiro.web.session.mgt.DefaultWebSessionManager;
+import org.crazycake.shiro.RedisManager;
+import org.crazycake.shiro.RedisSessionDAO;
+import org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,6 +42,7 @@ import java.util.Map;
 public class ShiroConfig implements WebMvcConfigurer {
     @Autowired
     WxPayConfig wxPayConfig;
+
     /**
      * TODO 尚未配置好所有jwt接口
      */
@@ -53,6 +58,7 @@ public class ShiroConfig implements WebMvcConfigurer {
         pattern.put("/api/v1/register**", "anon");
         pattern.put("/api/v1/status", "anon");
         pattern.put("/api/v1/logout", "anon");
+        pattern.put("/api/v1/**", "anon");
 
         pattern.put("/api/v1/token", "jwt");
         pattern.put("/api/v1/user", "jwt");
@@ -63,7 +69,22 @@ public class ShiroConfig implements WebMvcConfigurer {
         shiroFilterFactoryBean.setFilters(filtersMap);
 
         shiroFilterFactoryBean.setFilterChainDefinitionMap(pattern);
+        shiroFilterFactoryBean.setLoginUrl("/xxx");
         return shiroFilterFactoryBean;
+    }
+
+    @Bean
+    public DefaultAdvisorAutoProxyCreator advisorAutoProxyCreator() {
+        DefaultAdvisorAutoProxyCreator advisorAutoProxyCreator = new DefaultAdvisorAutoProxyCreator();
+        advisorAutoProxyCreator.setProxyTargetClass(true);
+        return advisorAutoProxyCreator;
+    }
+
+    @Bean
+    public AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor(DefaultWebSecurityManager securityManager) {
+        AuthorizationAttributeSourceAdvisor authorizationAttributeSourceAdvisor = new AuthorizationAttributeSourceAdvisor();
+        authorizationAttributeSourceAdvisor.setSecurityManager(securityManager);
+        return authorizationAttributeSourceAdvisor;
     }
 
     @Bean
@@ -84,6 +105,8 @@ public class ShiroConfig implements WebMvcConfigurer {
         securityManager.setCacheManager(new MemoryConstrainedCacheManager());
         DefaultWebSessionManager defaultWebSessionManager = new DefaultWebSessionManager();
         defaultWebSessionManager.setGlobalSessionTimeout(1000L * 60 * 60 * 60 * 24 * 30); // 30天
+        defaultWebSessionManager.setSessionDAO(redisSessionDAO());
+
         securityManager.setSessionManager(defaultWebSessionManager);
         securityManager.setRememberMeManager(rememberMeManager());
         SecurityUtils.setSecurityManager(securityManager);
@@ -112,7 +135,7 @@ public class ShiroConfig implements WebMvcConfigurer {
     }
 
     @Bean
-    public AuthorizingRealm authorizingRealm(){
+    public AuthorizingRealm authorizingRealm() {
         AuthorizationRealm authorizationRealm = new AuthorizationRealm();
         authorizationRealm.setName(LoginType.COMMON.getType());
 
@@ -121,10 +144,11 @@ public class ShiroConfig implements WebMvcConfigurer {
 
     /**
      * 微信授权登录realm
+     *
      * @return WechatLoginRealm
      */
     @Bean
-    public WechatLoginRealm wechatLoginRealm(){
+    public WechatLoginRealm wechatLoginRealm() {
         WechatLoginRealm wechatLoginRealm = new WechatLoginRealm();
         wechatLoginRealm.setName(LoginType.WECHAT_LOGIN.getType());
 
@@ -160,15 +184,24 @@ public class ShiroConfig implements WebMvcConfigurer {
      * 用此方法进行身份验证时，Shiro会将您提供的凭据与在Subject中保存的凭据进行比较。
      * 数据库中的密码通常在SimpleAuthenticationInfo（包含从数据库获取的凭据）中保存，
      * 而CredentialsMatcher会将它们与用户提交的相应凭据进行比较。
+     *
      * @return CredentialsMatcher
      */
     @Bean
     public CredentialsMatcher credentialsMatcher() {
         return (authenticationToken, authenticationInfo) -> {
-            String submittedPassword = new String((char[])authenticationToken.getCredentials());
+            String submittedPassword = new String((char[]) authenticationToken.getCredentials());
             String encryptedPassword = new Sha256Hash(submittedPassword, wxPayConfig.getSALT()).toString();
-            String storedPassword = (String)authenticationInfo.getCredentials();
+            String storedPassword = (String) authenticationInfo.getCredentials();
             return encryptedPassword.equals(storedPassword);
         };
+    }
+
+    public RedisSessionDAO redisSessionDAO() {
+        RedisSessionDAO redisSessionDAO = new RedisSessionDAO();
+        RedisManager redisManager = new RedisManager();
+        redisManager.setHost("127.0.0.1:6379");
+        redisSessionDAO.setRedisManager(redisManager);
+        return redisSessionDAO;
     }
 }

@@ -99,6 +99,18 @@
             <classifier>jakarta</classifier>
             <version>1.11.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.crazycake</groupId>
+            <artifactId>shiro-redis</artifactId>
+            <version>3.3.1</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/src/main/resources/shiro-redis.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>5.0.0</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.commons</groupId>

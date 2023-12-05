@@ -4,6 +4,7 @@ import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.ChargeOption;
 import com.westee.cake.generate.ChargeOptionExample;
 import com.westee.cake.generate.ChargeOptionMapper;
+import org.apache.shiro.authz.annotation.RequiresRoles;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +28,7 @@ public class ChargeOptionService {
         return chargeOptionMapper.selectByExample(chargeOptionExample);
     }
 
+    @RequiresRoles("admin")
     public ChargeOption createChargeOption(ChargeOption chargeOption, long shopId, long userId) {
         chargeOption.setOwnerUsrId(userId);
         chargeOption.setShopId(shopId);
@@ -37,6 +39,7 @@ public class ChargeOptionService {
         return chargeOption;
     }
 
+    @RequiresRoles("admin")
     public ChargeOption deleteChargeOption(int chargeOptionId, long userId) {
         ChargeOption chargeOption = chargeOptionMapper.selectByPrimaryKey(chargeOptionId);
         if (userId == chargeOption.getOwnerUsrId()) {
@@ -50,6 +53,7 @@ public class ChargeOptionService {
         return chargeOption;
     }
 
+    @RequiresRoles("admin")
     public ChargeOption updateChargeOption(ChargeOption chargeOption, Long userId) {
         ChargeOption chargeOptionResult = chargeOptionMapper.selectByPrimaryKey(chargeOption.getId());
         if (Objects.equals(userId, chargeOptionResult.getOwnerUsrId())) {

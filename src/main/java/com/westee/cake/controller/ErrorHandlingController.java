@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.westee.cake.entity.Response;
 import com.westee.cake.exceptions.HttpException;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.shiro.authz.AuthorizationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -19,7 +20,7 @@ import org.springframework.web.multipart.MultipartException;
  * ErrorHandlingController 类定义了一个 @ExceptionHandler 方法，它会捕获 HttpException 异常，
  * 并返回自定义的响应格式。具体来说，当控制器中抛出 HttpException 异常时，该方法会将 HTTP 响应码设置为 HttpException 中定义的状态码，
  * 同时设置响应内容为 JSON 格式的 Response 对象（其中包括异常信息和数据），从而实现了统一的异常处理。
- *
+ * <p>
  * 通过使用 @ControllerAdvice 注解，可以集中管理异常处理逻辑，提高代码复用性和可维护性，同时也能更好地保护系统安全，防止敏感信息泄露和攻击。
  */
 
@@ -37,7 +38,14 @@ public class ErrorHandlingController {
         Response<Object> response = Response.of("文件大小超过限制", null);
         ObjectMapper objectMapper = new ObjectMapper();
         String s = objectMapper.writeValueAsString(response);
-        System.out.println(s);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(s);
+    }
+
+    @ExceptionHandler(AuthorizationException.class)
+    public ResponseEntity<String> handleAuthException(AuthorizationException ex) throws JsonProcessingException {
+        Response<Object> response = Response.of("没有授权进行此操作", null);
+        ObjectMapper objectMapper = new ObjectMapper();
+        String s = objectMapper.writeValueAsString(response);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(s);
     }
 }
