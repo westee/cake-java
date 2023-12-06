@@ -19,6 +19,7 @@ import com.westee.cake.generate.UserRoleExample;
 import com.westee.cake.generate.UserRoleMapper;
 import com.westee.cake.realm.JWTUtil;
 import com.westee.cake.realm.LoginType;
+import com.westee.cake.util.Utils;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.crypto.hash.Sha256Hash;
 import org.apache.shiro.subject.Subject;
@@ -30,7 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -41,7 +42,7 @@ public class UserService {
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
     private final UserRoleMapper userRoleMapper;
-
+    private final RestTemplate restTemplate = new RestTemplate();
     @Autowired
     public UserService(UserMapper userMapper, WxPayConfig wxPayConfig, RoleMapper roleMapper, UserRoleMapper userRoleMapper) {
         this.userMapper = userMapper;
@@ -53,8 +54,9 @@ public class UserService {
     public User createUserIfNotExist(String openid) {
         User user = new User();
         user.setWxOpenId(openid);
-        user.setUpdatedAt(new Date());
-        user.setCreatedAt(new Date());
+        LocalDateTime now = LocalDateTime.now();
+        user.setUpdatedAt(now);
+        user.setCreatedAt(now);
         userMapper.insert(user);
         UserExample userExample = new UserExample();
         userExample.createCriteria().andWxOpenIdEqualTo(openid);
@@ -81,7 +83,7 @@ public class UserService {
         UserExample userExample = new UserExample();
         userExample.createCriteria().andWxOpenIdEqualTo(openid);
         List<User> users = userMapper.selectByExample(userExample);
-        if (users.size() == 0) {
+        if (users.isEmpty()) {
             throw HttpException.notAuthorized("用户未授权");
         }
         return users.get(0);
@@ -109,10 +111,9 @@ public class UserService {
             user.setAvatarUrl(avatar);
             user.setWxOpenId(weChatSession.getOpenid());
             user.setWxSessionKey(weChatSession.getSession_key());
-            Date date = new Date();
             user.setRoleId(2L);
-            user.setCreatedAt(date);
-            user.setUpdatedAt(date);
+            user.setCreatedAt(Utils.getNow());
+            user.setUpdatedAt(Utils.getNow());
             userMapper.insert(user);
             insertUserRole(user.getId(), 2L);
         }
@@ -122,15 +123,15 @@ public class UserService {
         User user = new User();
         user.setName(usernameAndPassword.getUsername());
         user.setPassword(new Sha256Hash(usernameAndPassword.getPassword(), wxPayConfig.getSALT()).toString());
-        Date date = new Date();
-        user.setCreatedAt(date);
-        user.setUpdatedAt(date);
+        LocalDateTime now = Utils.getNow();
+        user.setCreatedAt(now);
+        user.setUpdatedAt(now);
         userMapper.insert(user);
         insertUserRole(user.getId(), 2L);
     }
 
     public WeChatSession getWeChatSession(Map<String, String> body) throws JsonProcessingException {
-        RestTemplate restTemplate = new RestTemplate();
+
         String resourceURL = "https://api.weixin.qq.com/sns/jscode2session?appid=" + wxPayConfig.getAPPID() +
                 "&secret=" + wxPayConfig.getSECRET() + "&js_code=" + body.get("wxcode") + "&grant_type=authorization_code";
 
@@ -182,7 +183,6 @@ public class UserService {
                 // 对 principal 进行类型转换，通常需要根据具体的情况进行转换
                 User user = (User) principal;
                 // 输出当前登录的用户名信息
-                System.out.println("当前登录用户名：" + user.getName());
                 return user;
             }
         }
@@ -267,7 +267,7 @@ public class UserService {
      *  管理员搜索用户
      * @param keyword   关键字
      * @param type      id tel nickname
-     * @return
+     * @return          PageResponse<User> 搜索用户列表结果
      */
     public PageResponse<User> searchUser(String keyword, String type) {
         UserExample userExample = new UserExample();
