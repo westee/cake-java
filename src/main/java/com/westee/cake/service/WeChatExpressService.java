@@ -22,6 +22,7 @@ import com.westee.cake.global.GlobalVariable;
 import com.westee.cake.util.AES_Enc;
 import com.westee.cake.util.RSA_Sign;
 import com.westee.cake.util.RequestUtil;
+import com.westee.cake.util.Utils;
 import com.westee.cake.validator.ExpressSendValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -170,8 +171,8 @@ public class WeChatExpressService {
             ExpressInfo expressInfo = new ExpressInfo();
             expressInfo.setWxOrderNo(orderNo);
             expressInfo.setInfo(s);
-            expressInfo.setCreatedAt(new Date());
-            expressInfo.setUpdatedAt(new Date());
+            expressInfo.setCreatedAt(Utils.getNow());
+            expressInfo.setUpdatedAt(Utils.getNow());
             expressInfoMapper.insert(expressInfo);
             return expressInfo;
         } catch (JsonProcessingException e) {

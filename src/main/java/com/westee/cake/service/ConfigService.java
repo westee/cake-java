@@ -5,6 +5,7 @@ import com.westee.cake.generate.ConfigMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Service
@@ -22,7 +23,7 @@ public class ConfigService {
 
     public Config updateConfig(Config config) {
         config.setId(1);
-        config.setUpdatedAt(new Date());
+        config.setUpdatedAt(LocalDateTime.now());
         configMapper.updateByPrimaryKeySelective(config);
         return config;
     }

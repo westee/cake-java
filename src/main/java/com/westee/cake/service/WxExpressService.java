@@ -4,6 +4,7 @@ import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.WxExpress;
 import com.westee.cake.generate.WxExpressExample;
 import com.westee.cake.generate.WxExpressMapper;
+import com.westee.cake.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,8 +42,8 @@ public class WxExpressService {
         wxExpress.setTransOrderId(map.get("trans_order_id").toString());
         wxExpress.setFee(doubleToInt((double) map.get("fee")));
 
-        wxExpress.setUpdatedAt(new Date());
-        wxExpress.setCreatedAt(new Date());
+        wxExpress.setUpdatedAt(Utils.getNow());
+        wxExpress.setCreatedAt(Utils.getNow());
         if (Objects.equals(wxExpress.getErrmsg(), "ok")) {
             wxExpress.setOrderStatus(WxExpressOrderStatus.ORDER_CREATED.getCode().toString());
             wxExpressMapper.insert(wxExpress);
@@ -61,7 +62,7 @@ public class WxExpressService {
         wxExpressExample.createCriteria().andWxOrderIdEqualTo(express.get("wx_order_id"));
         WxExpress wxExpress = new WxExpress();
         wxExpress.setOrderStatus(express.get("order_status"));
-        wxExpress.setUpdatedAt(new Date());
+        wxExpress.setUpdatedAt(Utils.getNow());
         wxExpressMapper.updateByExampleSelective(wxExpress, wxExpressExample);
     }
 

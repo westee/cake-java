@@ -8,9 +8,11 @@ import com.westee.cake.generate.DiscountDay;
 import com.westee.cake.generate.DiscountDayExample;
 import com.westee.cake.generate.DiscountDayMapper;
 import com.westee.cake.generate.Role;
+import com.westee.cake.util.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 
@@ -61,7 +63,7 @@ public class DiscountDayService {
                 throw HttpException.badRequest("商品活动日已设置，请重新选择商品");
             }
             discountDay.setDisabled(false);
-            Date date = new Date();
+            LocalDateTime date = Utils.getNow();
             discountDay.setCreatedAt(date);
             discountDay.setUpdatedAt(date);
             discountDayMapper.insert(discountDay);
@@ -73,7 +75,7 @@ public class DiscountDayService {
 
     public DiscountDay updateDiscountDay(Long userId, DiscountDay discountDay) {
         if (checkAdmin(userId)) {
-            discountDay.setUpdatedAt(new Date());
+            discountDay.setUpdatedAt(Utils.getNow());
             discountDayMapper.updateByPrimaryKeySelective(discountDay);
         }
         getGoodsName(discountDay);

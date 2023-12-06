@@ -11,10 +11,12 @@
                         connectionURL="jdbc:mysql://localhost:3306/cake?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;characterEncoding=utf-8&amp;serverTimezone=Asia/Shanghai"
                         userId="root"
                         password="root">
+            <property name="nullCatalogMeansCurrent" value="true"/>
         </jdbcConnection>
 
         <javaTypeResolver>
             <property name="forceBigDecimals" value="true"/>
+            <property name="useJSR310Types" value="true" />
         </javaTypeResolver>
 
         <javaModelGenerator targetPackage="com.westee.cake.generate" targetProject="src/main/java">

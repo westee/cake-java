@@ -6,6 +6,7 @@ import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.CakeTag;
 import com.westee.cake.generate.CakeTagExample;
 import com.westee.cake.generate.CakeTagMapper;
+import com.westee.cake.util.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -37,8 +38,8 @@ public class CakeTagService {
 
     public CakeTag insertCakeTag(CakeTag tag, long roleId) {
         checkAuthorization(roleId);
-        tag.setCreatedAt(new Date());
-        tag.setUpdatedAt(new Date());
+        tag.setCreatedAt(Utils.getNow());
+        tag.setUpdatedAt(Utils.getNow());
         tag.setDeleted(false);
         cakeTagMapper.insert(tag);
         return tag;
@@ -47,7 +48,7 @@ public class CakeTagService {
     public CakeTag updateCakeTag(CakeTag tag, long roleId) {
         checkAuthorization(roleId);
 
-        tag.setUpdatedAt(new Date());
+        tag.setUpdatedAt(Utils.getNow());
         cakeTagMapper.updateByPrimaryKeySelective(tag);
         return tag;
     }
@@ -58,7 +59,7 @@ public class CakeTagService {
         CakeTag cakeSelective = new CakeTag();
         cakeSelective.setDeleted(true);
         cakeSelective.setId(cakeTagId);
-        cakeSelective.setUpdatedAt(new Date());
+        cakeSelective.setUpdatedAt(Utils.getNow());
         cakeTagMapper.updateByPrimaryKeySelective(cakeSelective);
         return cakeSelective;
     }

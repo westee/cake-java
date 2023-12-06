@@ -17,6 +17,7 @@ import com.westee.cake.generate.GoodsMapper;
 import com.westee.cake.generate.Shop;
 import com.westee.cake.generate.ShopMapper;
 import com.westee.cake.mapper.MyGoodsMapper;
+import com.westee.cake.util.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -92,8 +93,8 @@ public class GoodsService {
 
     public GoodsWithImages createGoods(GoodsWithImages goods, long userId) {
         checkGoodsBelongToUser(goods, userId);
-        goods.setCreatedAt(new Date());
-        goods.setUpdatedAt(new Date());
+        goods.setCreatedAt(Utils.getNow());
+        goods.setUpdatedAt(Utils.getNow());
         goods.setStatus(GoodsStatus.OK.getName());
         if (checkFieldsLegal(goods)) {
             goodsMapper.insert(goods);
@@ -109,16 +110,16 @@ public class GoodsService {
             GoodsImage goodsImage = new GoodsImage();
             goodsImage.setOwnerGoodsId(goodsId);
             goodsImage.setUrl(item);
-            goodsImage.setCreatedAt(new Date());
-            goodsImage.setUpdatedAt(new Date());
+            goodsImage.setCreatedAt(Utils.getNow());
+            goodsImage.setUpdatedAt(Utils.getNow());
             goodsImageMapper.insertSelective(goodsImage);
         });
     }
 
     public GoodsWithImages updateGoods(GoodsWithImages goods, Long userId) {
         checkGoodsBelongToUser(goods, userId);
-        goods.setUpdatedAt(new Date());
-        goods.setCreatedAt(new Date());
+        goods.setUpdatedAt(Utils.getNow());
+        goods.setCreatedAt(Utils.getNow());
         goodsMapper.updateByPrimaryKeySelective(goods);
         insertGoodsImage(goods.getImages(), goods.getId());
         return myGoodsWithImageMapper.getGoodsWithImage(goods.getId());
@@ -129,8 +130,8 @@ public class GoodsService {
         goods.setId(goodsId);
         checkGoodsBelongToUser(goods, userId);
         goods.setStatus(GoodsStatus.DELETED.getName());
-        goods.setUpdatedAt(new Date());
-        goods.setCreatedAt(new Date());
+        goods.setUpdatedAt(Utils.getNow());
+        goods.setCreatedAt(Utils.getNow());
         goodsMapper.updateByPrimaryKeySelective(goods);
         return goods;
     }

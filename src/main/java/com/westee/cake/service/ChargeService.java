@@ -16,6 +16,7 @@ import com.westee.cake.generate.ChargeOption;
 import com.westee.cake.generate.ChargeOptionMapper;
 import com.westee.cake.generate.User;
 import com.westee.cake.generate.UserMapper;
+import com.westee.cake.util.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -64,8 +65,8 @@ public class ChargeService {
         charge.setPresent(chargeOption.getGift());
         charge.setStatus(ChargeStatus.WAIT.getName());
         charge.setChargeType(ChargeType.WECHAT.getName());
-        charge.setCreatedAt(new Date());
-        charge.setUpdatedAt(new Date());
+        charge.setCreatedAt(Utils.getNow());
+        charge.setUpdatedAt(Utils.getNow());
         chargeMapper.insert(charge);
         // 发起微信支付请求
         try {

@@ -11,6 +11,7 @@ import com.westee.cake.generate.CakeMapper;
 import com.westee.cake.generate.CakeTagMapping;
 import com.westee.cake.generate.CakeTagMappingExample;
 import com.westee.cake.generate.CakeTagMappingMapper;
+import com.westee.cake.util.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -82,8 +83,8 @@ public class CakeService {
 
     public Cake insertCake(CakeWithTag cake, long roleId) {
         checkAuthorization(roleId);
-        cake.setCreatedAt(new Date());
-        cake.setUpdatedAt(new Date());
+        cake.setCreatedAt(Utils.getNow());
+        cake.setUpdatedAt(Utils.getNow());
         cake.setDeleted(false);
         cakeMapper.insert(cake);
 
@@ -93,7 +94,7 @@ public class CakeService {
 
     public Cake updateCake(CakeWithTag cake, long roleId) {
         checkAuthorization(roleId);
-        cake.setUpdatedAt(new Date());
+        cake.setUpdatedAt(Utils.getNow());
         cakeMapper.updateByPrimaryKeySelective(cake);
 
         // 删除旧的cake tag mapping
@@ -114,8 +115,8 @@ public class CakeService {
             cakeTagMapping.setCakeId(cake.getId().toString());
             cakeTagMapping.setTagId(tag.getId().toString());
             cakeTagMapping.setDeleted(false);
-            cakeTagMapping.setCreatedAt(new Date());
-            cakeTagMapping.setUpdatedAt(new Date());
+            cakeTagMapping.setCreatedAt(Utils.getNow());
+            cakeTagMapping.setUpdatedAt(Utils.getNow());
             cakeTagMappingMapper.insert(cakeTagMapping);
         });
     }
@@ -126,7 +127,7 @@ public class CakeService {
         Cake cakeSelective = new Cake();
         cakeSelective.setDeleted(true);
         cakeSelective.setId(cakeId);
-        cakeSelective.setUpdatedAt(new Date());
+        cakeSelective.setUpdatedAt(Utils.getNow());
         cakeMapper.updateByPrimaryKeySelective(cakeSelective);
         return cakeSelective;
     }

@@ -12,6 +12,7 @@ import com.westee.cake.generate.UserCouponExample;
 import com.westee.cake.generate.UserCouponMapper;
 import com.westee.cake.generate.UserExample;
 import com.westee.cake.generate.UserMapper;
+import com.westee.cake.util.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -42,8 +43,8 @@ public class CouponService {
      * @return       充值记录
      */
     public Coupon insertCoupon(Coupon coupon) {
-        coupon.setCreatedAt(new Date());
-        coupon.setUpdatedAt(new Date());
+        coupon.setCreatedAt(Utils.getNow());
+        coupon.setUpdatedAt(Utils.getNow());
         couponMapper.insert(coupon);
         return coupon;
     }
@@ -68,8 +69,8 @@ public class CouponService {
             userCoupon.setCouponId(couponId);
             userCoupon.setUserId(user.getId());
             userCoupon.setUsed(false);
-            userCoupon.setCreatedAt(new Date());
-            userCoupon.setUpdatedAt(new Date());
+            userCoupon.setCreatedAt(Utils.getNow());
+            userCoupon.setUpdatedAt(Utils.getNow());
             userCouponMapper.insert(userCoupon);
         });
     }
@@ -92,7 +93,7 @@ public class CouponService {
         ArrayList<Coupon> coupons = new ArrayList<>();
         userCoupons.forEach(userCoupon -> {
             CouponExample couponExample = new CouponExample();
-            couponExample.createCriteria().andStartDateLessThanOrEqualTo(new Date()).andEndDateGreaterThan(new Date())
+            couponExample.createCriteria().andStartDateLessThanOrEqualTo(Utils.getNow()).andEndDateGreaterThan(Utils.getNow())
                     .andIdEqualTo(userCoupon.getCouponId());
             List<Coupon> couponList = couponMapper.selectByExample(couponExample);
             if(!couponList.isEmpty()) {
@@ -116,7 +117,7 @@ public class CouponService {
         }
 
         CouponExample couponExample = new CouponExample();
-        couponExample.createCriteria().andIdIn(couponIdList).andEndDateGreaterThan(new Date());
+        couponExample.createCriteria().andIdIn(couponIdList).andEndDateGreaterThan(Utils.getNow());
         return couponMapper.countByExample(couponExample);
     }
 

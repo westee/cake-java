@@ -25,6 +25,7 @@ import com.westee.cake.entity.ShoppingCartStatus;
 import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.*;
 import com.westee.cake.mapper.MyOrderMapper;
+import com.westee.cake.util.Utils;
 import com.westee.cake.validator.ExpressSendValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -226,7 +230,7 @@ public class OrderService {
      */
     public void addDeliveryToMQ(OrderTable order, Map<Long, Goods> idToGoodsMap, BigDecimal finalPrice,
                                 OrderInfo orderInfo, String openid, String orderNo) {
-        Date appointmentTime = order.getPickUpTime();
+        LocalDateTime appointmentTime = order.getPickUpTime();
         if (Objects.equals(order.getPickupType(), OrderPickupStatus.EXPRESS.getValue())) {
             ExpressCreate expressCreate = wechatExpressService.collectExpressInfo(idToGoodsMap, finalPrice, orderInfo, openid, orderNo);
             ExpressInfo expressInfo = wechatExpressService.insertExpressInfo(expressCreate, orderNo);
@@ -234,12 +238,14 @@ public class OrderService {
         }
     }
 
-    public void chooseMQQueue(Date appointmentTime, ExpressCreate expressInfo) {
+    public void chooseMQQueue(LocalDateTime appointmentTime, ExpressCreate expressInfo) {
         if (Objects.isNull(appointmentTime)) {
             wechatExpressService.doCreateExpress(expressInfo);
         } else {
+            Instant instant = appointmentTime.atZone(ZoneId.systemDefault()).toInstant();
+            long timestamp = instant.toEpochMilli();
             // 预约配送时间
-            if (appointmentTime.getTime() < new Date().getTime()) {
+            if (timestamp < new Date().getTime()) {
                 throw HttpException.badRequest("派送时间不正确");
             }
             sendDelayedOrder(appointmentTime, expressInfo);
@@ -248,7 +254,7 @@ public class OrderService {
 
     public void sendExpressIfExpress(OrderTable order) {
         ExpressInfo expressInfo = wechatExpressService.getCreateExpressInfoByOutTradeNo(order.getWxOrderNo());
-        Date appointmentTime = order.getPickUpTime();
+        LocalDateTime appointmentTime = order.getPickUpTime();
         ExpressCreate expressCreate = null;
         try {
             expressCreate = objectMapper.readValue(expressInfo.getInfo(), ExpressCreate.class);
@@ -259,8 +265,10 @@ public class OrderService {
         chooseMQQueue(appointmentTime, expressCreate);
     }
 
-    public void sendDelayedOrder(Date pickUpTime, ExpressCreate expressInfo) {
-        orderDeliveryScheduler.scheduleOrderDelivery(pickUpTime, expressInfo);
+    public void sendDelayedOrder(LocalDateTime pickUpTime, ExpressCreate expressInfo) {
+        Instant instant = pickUpTime.atZone(ZoneId.systemDefault()).toInstant();
+        Date date = Date.from(instant);
+        orderDeliveryScheduler.scheduleOrderDelivery(date, expressInfo);
     }
 
     /**
@@ -297,8 +305,8 @@ public class OrderService {
 
         userCoupons.forEach(item -> {
             item.setUsed(true);
-            item.setUsedTime(new Date());
-            item.setUpdatedAt(new Date());
+            item.setUsedTime(Utils.getNow());
+            item.setUpdatedAt(Utils.getNow());
             userCouponMapper.updateByPrimaryKey(item);
         });
 
@@ -507,7 +515,7 @@ public class OrderService {
                 OrderTable copy = new OrderTable();
                 copy.setId(order.getId());
                 copy.setStatus(order.getStatus());
-                copy.setUpdatedAt(new Date());
+                copy.setUpdatedAt(Utils.getNow());
                 updateOrderByPrimaryKeySelective(order);
                 return toOrderResponse(generateOrderGoodsVO(order.getId()));
             }
@@ -517,7 +525,7 @@ public class OrderService {
                 OrderTable copy = new OrderTable();
                 copy.setStatus(OrderStatus.CHECK_REFUND.getName());
                 copy.setId(order.getId());
-                copy.setUpdatedAt(new Date());
+                copy.setUpdatedAt(Utils.getNow());
                 updateOrderByPrimaryKeySelective(copy);
                 return toOrderResponse(generateOrderGoodsVO(order.getId()));
             }
@@ -525,11 +533,11 @@ public class OrderService {
             // 申请退款后取消申请
             if (Objects.equals(order.getStatus(), OrderStatus.PAID.getName()) &&
                     Objects.equals(orderInDatabase.getStatus(), OrderStatus.CHECK_REFUND.getName())) {
-                order.setPickUpTime(new Date());
+                order.setPickUpTime(Utils.getNow());
                 OrderTable copy = new OrderTable();
                 copy.setId(order.getId());
                 copy.setStatus(OrderStatus.PAID.getName());
-                copy.setUpdatedAt(new Date());
+                copy.setUpdatedAt(Utils.getNow());
                 orderMapper.updateByPrimaryKeySelective(copy);
 
                 return toOrderResponse(generateOrderGoodsVO(order.getId()));
@@ -583,7 +591,7 @@ public class OrderService {
         List<GoodsInfo> goodsInfo = myOrderMapper.getGoodsInfoOfOrder(orderId);
 
         order.setStatus(OrderStatus.DELETED.getName());
-        order.setUpdatedAt(new Date());
+        order.setUpdatedAt(Utils.getNow());
         orderMapper.updateByPrimaryKey(order);
 
         OrderGoodsVO result = new OrderGoodsVO();
@@ -726,8 +734,8 @@ public class OrderService {
 
         order.setExpressCompany(null);
         order.setExpressId(null);
-        order.setCreatedAt(new Date());
-        order.setUpdatedAt(new Date());
+        order.setCreatedAt(Utils.getNow());
+        order.setUpdatedAt(Utils.getNow());
         String s = generateRandomCode(4);
 
         while (!isCodesEmpty(s)) {
@@ -843,7 +851,7 @@ public class OrderService {
         OrderTable order = new OrderTable();
         order.setId(orderInDB.getId());
         order.setStatus(OrderStatus.REFUNDED.getName());
-        order.setUpdatedAt(new Date());
+        order.setUpdatedAt(Utils.getNow());
         orderMapper.updateByPrimaryKeySelective(order);
 
         // 增加库存
@@ -875,7 +883,7 @@ public class OrderService {
             if (!userCoupons.isEmpty()) {
                 UserCoupon userCoupon = userCoupons.get(0);
                 userCoupon.setUsed(false);
-                userCoupon.setUpdatedAt(new Date());
+                userCoupon.setUpdatedAt(Utils.getNow());
                 userCoupon.setUsedTime(null);
                 userCouponMapper.updateByPrimaryKey(userCoupon);
             }

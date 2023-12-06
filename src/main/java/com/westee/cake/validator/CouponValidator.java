@@ -3,6 +3,7 @@ package com.westee.cake.validator;
 import com.westee.cake.generate.Coupon;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 public class CouponValidator {
@@ -40,11 +41,13 @@ public class CouponValidator {
         return minimumAmount == null || minimumAmount.compareTo(BigDecimal.ZERO) >= 0;
     }
 
-    private static boolean validateStartDate(Date startDate) {
-        return startDate != null && startDate.before(new Date());
+    private static boolean validateStartDate(LocalDateTime startDate) {
+        LocalDateTime now = LocalDateTime.now();
+        return startDate != null && startDate.isBefore(now);
     }
 
-    private static boolean validateEndDate(Date endDate) {
-        return endDate != null && endDate.after(new Date());
+    private static boolean validateEndDate(LocalDateTime endDate) {
+        LocalDateTime now = LocalDateTime.now();
+        return endDate != null && endDate.isAfter(now);
     }
 }

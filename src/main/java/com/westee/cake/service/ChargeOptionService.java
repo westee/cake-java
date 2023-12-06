@@ -4,6 +4,7 @@ import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.ChargeOption;
 import com.westee.cake.generate.ChargeOptionExample;
 import com.westee.cake.generate.ChargeOptionMapper;
+import com.westee.cake.util.Utils;
 import org.apache.shiro.authz.annotation.RequiresRoles;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -33,8 +34,8 @@ public class ChargeOptionService {
         chargeOption.setOwnerUsrId(userId);
         chargeOption.setShopId(shopId);
         chargeOption.setDeleted(false);
-        chargeOption.setUpdatedAt(new Date());
-        chargeOption.setCreatedAt(new Date());
+        chargeOption.setUpdatedAt(Utils.getNow());
+        chargeOption.setCreatedAt(Utils.getNow());
         chargeOptionMapper.insert(chargeOption);
         return chargeOption;
     }
@@ -59,7 +60,7 @@ public class ChargeOptionService {
         if (Objects.equals(userId, chargeOptionResult.getOwnerUsrId())) {
             ChargeOptionExample chargeOptionExample = new ChargeOptionExample();
             chargeOptionExample.createCriteria().andIdEqualTo(chargeOptionResult.getId());
-            chargeOption.setUpdatedAt(new Date());
+            chargeOption.setUpdatedAt(Utils.getNow());
             chargeOptionMapper.updateByExampleSelective(chargeOption, chargeOptionExample);
         } else {
             throw HttpException.forbidden("没有权限");

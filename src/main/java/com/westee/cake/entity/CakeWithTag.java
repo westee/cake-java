@@ -3,6 +3,7 @@ package com.westee.cake.entity;
 import com.westee.cake.generate.Cake;
 import com.westee.cake.generate.CakeTag;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -21,7 +22,7 @@ public class CakeWithTag extends Cake {
      * @param updatedAt
      * @mbg.generated Fri Jul 28 14:34:59 CST 2023
      */
-    public CakeWithTag(Long id, String name, String imgUrl, Boolean deleted, Date createdAt, Date updatedAt) {
+    public CakeWithTag(Long id, String name, String imgUrl, Boolean deleted, LocalDateTime createdAt, LocalDateTime updatedAt) {
         super(id, name, imgUrl, deleted, createdAt, updatedAt);
     }
 

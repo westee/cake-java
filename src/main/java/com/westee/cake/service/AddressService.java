@@ -8,9 +8,11 @@ import com.westee.cake.generate.Address;
 import com.westee.cake.generate.AddressExample;
 import com.westee.cake.generate.AddressMapper;
 import com.westee.cake.mapper.MyAddressMapper;
+import com.westee.cake.util.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -51,8 +53,8 @@ public class AddressService {
         address.setUserId(userId);
         address.setId(null);
         address.setDeleted(DeleteStatus.OK.getValue());
-        address.setUpdatedAt(new Date());
-        address.setCreatedAt(new Date());
+        address.setUpdatedAt(Utils.getNow());
+        address.setCreatedAt(Utils.getNow());
         addressMapper.insertSelective(address);
         return address;
     }
@@ -64,8 +66,8 @@ public class AddressService {
         }
         Long ownerUserId = addressResult.getUserId();
         if (Objects.equals(ownerUserId, userId)) {
-            address.setUpdatedAt(new Date());
-            address.setCreatedAt(new Date());
+            address.setUpdatedAt(Utils.getNow());
+            address.setCreatedAt(Utils.getNow());
             addressMapper.updateByPrimaryKeySelective(address);
             return address;
         } else {
@@ -81,8 +83,8 @@ public class AddressService {
         Long ownerUserId = address.getUserId();
         if (Objects.equals(ownerUserId, userId)) {
             address.setDeleted(DeleteStatus.DELETED.getValue());
-            address.setUpdatedAt(new Date());
-            address.setCreatedAt(new Date());
+            address.setUpdatedAt(Utils.getNow());
+            address.setCreatedAt(Utils.getNow());
             addressMapper.updateByPrimaryKeySelective(address);
             return address;
         } else {

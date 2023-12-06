@@ -7,6 +7,7 @@ import com.westee.cake.exceptions.HttpException;
 import com.westee.cake.generate.Shop;
 import com.westee.cake.generate.ShopExample;
 import com.westee.cake.generate.ShopMapper;
+import com.westee.cake.util.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -37,8 +38,8 @@ public class ShopService {
         shop.setOwnerUserId(userId);
         shop.setId(null);
         shop.setStatus(GoodsStatus.OK.getName());
-        shop.setUpdatedAt(new Date());
-        shop.setCreatedAt(new Date());
+        shop.setUpdatedAt(Utils.getNow());
+        shop.setCreatedAt(Utils.getNow());
         int shopId = shopMapper.insertSelective(shop);
         shop.setId((long) shopId);
         return shop;
@@ -51,8 +52,8 @@ public class ShopService {
         }
         Long ownerUserId = shopResult.getOwnerUserId();
         if (Objects.equals(ownerUserId, userId)) {
-            shop.setUpdatedAt(new Date());
-            shop.setCreatedAt(new Date());
+            shop.setUpdatedAt(Utils.getNow());
+            shop.setCreatedAt(Utils.getNow());
             shopMapper.updateByPrimaryKeySelective(shop);
             return shop;
         } else {
@@ -68,8 +69,8 @@ public class ShopService {
         Long ownerUserId = shop.getOwnerUserId();
         if (Objects.equals(ownerUserId, userId)) {
             shop.setStatus(GoodsStatus.DELETED.getName());
-            shop.setUpdatedAt(new Date());
-            shop.setCreatedAt(new Date());
+            shop.setUpdatedAt(Utils.getNow());
+            shop.setCreatedAt(Utils.getNow());
             shopMapper.updateByPrimaryKeySelective(shop);
             return shop;
         } else {

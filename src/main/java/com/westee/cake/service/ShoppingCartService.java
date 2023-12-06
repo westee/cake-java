@@ -13,6 +13,7 @@ import com.westee.cake.generate.Goods;
 import com.westee.cake.generate.ShoppingCart;
 import com.westee.cake.generate.ShoppingCartExample;
 import com.westee.cake.generate.ShoppingCartMapper;
+import com.westee.cake.util.Utils;
 import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -162,8 +163,8 @@ public class ShoppingCartService {
         Goods goods = goodsToMapByGoodsIds.get(goodsItem.getId());
         ShoppingCart shoppingCart = new ShoppingCart();
         shoppingCart.setNumber(goodsItem.getNumber());
-        shoppingCart.setCreatedAt(new Date());
-        shoppingCart.setUpdatedAt(new Date());
+        shoppingCart.setCreatedAt(Utils.getNow());
+        shoppingCart.setUpdatedAt(Utils.getNow());
         shoppingCart.setStatus(GoodsStatus.OK.getName());
 
         shoppingCart.setGoodsId(goodsItem.getId());

@@ -6,6 +6,7 @@ import com.westee.cake.generate.GoodsTypesExample;
 import com.westee.cake.generate.GoodsTypesMapper;
 import com.westee.cake.generate.Shop;
 import com.westee.cake.generate.ShopMapper;
+import com.westee.cake.util.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -28,8 +29,8 @@ public class GoodsTypeService {
         GoodsTypes goodsTypes = new GoodsTypes();
         goodsTypes.setName(typeName);
         goodsTypes.setOwnerShopId(shopId);
-        goodsTypes.setCreatedAt(new Date());
-        goodsTypes.setUpdatedAt(new Date());
+        goodsTypes.setCreatedAt(Utils.getNow());
+        goodsTypes.setUpdatedAt(Utils.getNow());
         checkBelongToUser(goodsTypes, userId);
         goodsTypesMapper.insert(goodsTypes);
         return goodsTypes;
