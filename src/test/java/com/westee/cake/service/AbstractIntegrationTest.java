@@ -11,6 +11,8 @@ import com.westee.cake.entity.UsernameAndPassword;
 import com.westee.cake.entity.WeChatSession;
 import com.westee.cake.generate.User;
 import jakarta.inject.Inject;
+import org.apache.hc.client5.http.classic.HttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.configuration.ClassicConfiguration;
 import org.junit.jupiter.api.Assertions;
@@ -23,6 +25,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.LinkedMultiValueMap;
@@ -74,6 +77,8 @@ public class AbstractIntegrationTest {
         flyway.clean();
         flyway.migrate();
         mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+        HttpClient httpClient = HttpClients.createDefault();
+        restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
     }
 
 
