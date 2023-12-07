@@ -12,8 +12,6 @@ import com.westee.cake.util.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -39,14 +37,16 @@ public class AddressService {
     }
 
     public Address getAddressById(long addressId, long userId) {
-        Address address = addressMapper.selectByPrimaryKey(addressId);
-        if (Objects.isNull(address)) {
+        AddressExample addressExample = new AddressExample();
+        addressExample.createCriteria().andDeletedEqualTo(DeleteStatus.OK.getValue()).andIdEqualTo(addressId);
+        List<Address> addresses = addressMapper.selectByExample(addressExample);
+        if (addresses.isEmpty() ) {
             throw HttpException.notFound("地址未找到");
         }
-        if (!Objects.equals(address.getUserId(), userId)) {
+        if (!Objects.equals(addresses.get(0).getUserId(), userId)) {
             throw HttpException.notAuthorized("没有权限");
         }
-        return address;
+        return addresses.get(0);
     }
 
     public Address createAddress(Address address, long userId) {
