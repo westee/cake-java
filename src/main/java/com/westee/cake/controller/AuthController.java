@@ -132,6 +132,12 @@ public class AuthController {
         return LoginResponse.notLogin();
     }
 
+    @GetMapping("/logout")
+    public void logout() {
+        Subject subject = SecurityUtils.getSubject();
+        subject.logout();
+    }
+
     public LoginResult shiroLogin(UserToken token, LoginType type) {
         try {
             //登录不在该处处理，交由shiro处理

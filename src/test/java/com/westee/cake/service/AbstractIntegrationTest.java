@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.westee.cake.controller.AuthController;
 import com.westee.cake.entity.LoginResponse;
 import com.westee.cake.entity.LoginResult;
 import com.westee.cake.entity.TelAndPassword;
@@ -16,9 +15,6 @@ import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.configuration.ClassicConfiguration;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.mockito.InjectMocks;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpEntity;
@@ -27,10 +23,9 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.WebApplicationContext;
@@ -39,18 +34,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.startsWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AbstractIntegrationTest {
 
     @Inject
-    private JdbcTemplate jdbcTemplate;
-    @Inject
     Environment environment;
-
-    @InjectMocks
-    UserService userService;
 
     MockMvc mockMvc;
 
@@ -84,13 +74,6 @@ public class AbstractIntegrationTest {
         flyway.clean();
         flyway.migrate();
         mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
-//        String sql = "INSERT INTO cake.USER (ID, NAME, TEL, AVATAR_URL, ADDRESS, ROLE_ID, WX_OPEN_ID, WX_SESSION_KEY, " +
-//                "BIRTHDAY, SEX, PASSWORD, NICKNAME, BALANCE, CREATED_AT, UPDATED_AT) VALUES" +
-//                " (1, null, '15612345678', '1699282157470_p20.jpg', null, 2, " +
-//                "'x', 'y', '2023-10-06 08:00:00', 0, null, '1122', " +
-//                "null, '2023-11-06 17:33:08', '2023-11-06 17:33:08');";
-//
-//        jdbcTemplate.update(sql);
     }
 
 
@@ -99,21 +82,30 @@ public class AbstractIntegrationTest {
         return "http://localhost:" + environment.getProperty("local.server.port") + apiName;
     }
 
-
     public UserLoginResponse loginAndGetToken() throws JsonProcessingException {
-
+        UsernameAndPassword usernameAndPassword = generateUsernameAndPassword();
         ResponseEntity<String> stringResponseEntity = doHttpRequest("/api/v1/register-password", HttpMethod.POST, null,
-                objectMapper.writeValueAsString(generateUsernameAndPassword()));
+                objectMapper.writeValueAsString(usernameAndPassword));
         int responseCode = stringResponseEntity.getStatusCode().value();
-        Assertions.assertEquals(HttpStatus.OK.value(), responseCode);
+        assertEquals(HttpStatus.OK.value(), responseCode);
 
-//        // 微信登录
-//        ResponseEntity<String> stringResponseEntity = doHttpRequest("/api/v1/send-wxcode", HttpMethod.GET, null,
-//                objectMapper.writeValueAsString(generateRegister()));
+        // 密码登录
+        ResponseEntity<String> loginPasswordResponseEntity = doHttpRequest("/api/v1/login-password", HttpMethod.POST, null,
+                objectMapper.writeValueAsString(usernameAndPassword));
 
-        doHttpRequest("/api/v1/status", HttpMethod.GET, null, null).getBody();
+        List<String> strings = loginPasswordResponseEntity.getHeaders().get("Set-Cookie");
+        assert strings != null;
+        String cookie = getSessionIdFromSetCookie(strings.get(0));
 
-        return  null;//new UserLoginResponse(null, statusResponseData.getUser(), loginResult.getToken());
+        LoginResult loginResponse = objectMapper.readValue(loginPasswordResponseEntity.getBody(), LoginResult.class);
+
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add("Token", loginResponse.getToken());
+        headers.add("cookie", cookie);
+        String body = doHttpRequest("/api/v1/status", HttpMethod.GET, headers, null).getBody();
+        LoginResponse loginStatusResponse = objectMapper.readValue(body, LoginResponse.class);
+        assertTrue(loginStatusResponse.isLogin());
+        return  new UserLoginResponse(cookie, loginResponse.getData(), loginResponse.getToken());
     }
 
     // 获取cookie

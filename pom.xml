@@ -104,7 +104,7 @@
             <artifactId>shiro-redis</artifactId>
             <version>3.3.1</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/resources/shiro-redis.jar</systemPath>
+            <systemPath>${pom.basedir}/src/main/resources/shiro-redis.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>redis.clients</groupId>

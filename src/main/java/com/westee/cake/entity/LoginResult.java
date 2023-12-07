@@ -3,17 +3,25 @@ package com.westee.cake.entity;
 import com.westee.cake.generate.User;
 
 public class LoginResult extends Result<User> {
-    boolean isLogin;
+    boolean loginStatus;
     String token;
 
-    public LoginResult(String status, String msg, boolean isLogin) {
-        super(status, msg);
-        this.isLogin = isLogin;
+    public LoginResult() {
+        super(null, null);
     }
 
-    public LoginResult(String status, String msg, User data, boolean isLogin, String token) {
+    public LoginResult(String status, String msg) {
+        super(status, msg);
+    }
+
+    public LoginResult(String status, String msg, boolean loginStatus) {
+        super(status, msg);
+        this.loginStatus = loginStatus;
+    }
+
+    public LoginResult(String status, String msg, User data, boolean loginStatus, String token) {
         super(status, msg, data);
-        this.isLogin = isLogin;
+        this.loginStatus = loginStatus;
         this.token = token;
     }
 
@@ -25,8 +33,8 @@ public class LoginResult extends Result<User> {
         return new LoginResult("ok", msg, data, isLogin, token);
     }
 
-    public boolean isLogin() {
-        return isLogin;
+    public boolean isLoginStatus() {
+        return loginStatus;
     }
 
     public String getToken() {
