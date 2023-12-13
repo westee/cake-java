@@ -28,6 +28,7 @@ import org.crazycake.shiro.RedisManager;
 import org.crazycake.shiro.RedisSessionDAO;
 import org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -42,6 +43,9 @@ import java.util.Map;
 public class ShiroConfig implements WebMvcConfigurer {
     @Autowired
     WxPayConfig wxPayConfig;
+
+    @Value("${shiro-redis.redis-manager.host}")
+    String REDIS_HOST;
 
     /**
      * TODO 尚未配置好所有jwt接口
@@ -200,7 +204,7 @@ public class ShiroConfig implements WebMvcConfigurer {
     public RedisSessionDAO redisSessionDAO() {
         RedisSessionDAO redisSessionDAO = new RedisSessionDAO();
         RedisManager redisManager = new RedisManager();
-        redisManager.setHost("127.0.0.1:6379");
+        redisManager.setHost(REDIS_HOST);
         redisSessionDAO.setRedisManager(redisManager);
         return redisSessionDAO;
     }
