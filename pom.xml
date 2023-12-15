@@ -262,6 +262,23 @@
                 <version>1.6.0</version>
                 <executions>
                     <execution>
+                        <id>delete-if-exist-test-database</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <longModulepath>false</longModulepath>
+                            <executable>docker</executable>
+                            <arguments>
+                                <argument>rm</argument>
+                                <argument>-f</argument>
+                                <argument>test-mysql</argument>
+                                <argument>test-redis</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>start-test-database</id>
                         <phase>pre-integration-test</phase>
                         <goals>
@@ -394,7 +411,7 @@
                             <goal>migrate</goal>
                         </goals>
                         <configuration>
-                            <url>jdbc:mysql://localhost:3310/test-cake?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
+                            <url>jdbc:mysql://test-mysql:3310/test-cake?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
                             <user>root</user>
                             <password>root</password>
                         </configuration>
@@ -406,7 +423,7 @@
                             <goal>clean</goal>
                         </goals>
                         <configuration>
-                            <url>jdbc:mysql://localhost:3310/test-cake?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
+                            <url>jdbc:mysql://test-mysql:3310/test-cake?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
                             <user>root</user>
                             <password>root</password>
                         </configuration>
