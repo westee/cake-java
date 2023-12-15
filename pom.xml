@@ -411,7 +411,7 @@
                             <goal>migrate</goal>
                         </goals>
                         <configuration>
-                            <url>jdbc:mysql://test-mysql:3310/test-cake?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
+                            <url>jdbc:mysql://172.20.0.3:3310/test-cake?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
                             <user>root</user>
                             <password>root</password>
                         </configuration>
@@ -423,7 +423,7 @@
                             <goal>clean</goal>
                         </goals>
                         <configuration>
-                            <url>jdbc:mysql://test-mysql:3310/test-cake?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
+                            <url>jdbc:mysql://172.20.0.3:3310/test-cake?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
                             <user>root</user>
                             <password>root</password>
                         </configuration>
