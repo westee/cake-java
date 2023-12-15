@@ -301,7 +301,7 @@
                                 <argument>-p</argument>
                                 <argument>6380:6379</argument>
                                 <argument>-d</argument>
-                                <argument>mysql</argument>
+                                <argument>redis</argument>
                             </arguments>
                         </configuration>
                     </execution>
