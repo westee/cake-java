@@ -5,7 +5,7 @@ pipeline {
         stage('# Build') {
             steps {
                 // Run Maven on a Unix agent.
-                sh "./mvnw -Dmaven.test.failure.ignore=true clean verify"
+                sh "chmod +x ./mvnw &&./mvnw -Dmaven.test.failure.ignore=true clean verify"
             }
 
             post {
