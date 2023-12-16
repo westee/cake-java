@@ -62,6 +62,7 @@ public class QuartzConfig {
         Properties properties = new Properties();
         properties.setProperty("useProperties", "false");
         properties.setProperty("org.quartz.jobStore.class", "org.quartz.impl.jdbcjobstore.JobStoreTX");
+        properties.setProperty("org.quartz.jobStore.driverDelegateClass", "org.quartz.impl.jdbcjobstore.StdJDBCDelegate");
         propertiesFactoryBean.setProperties(properties);
         return propertiesFactoryBean.getObject();
     }
