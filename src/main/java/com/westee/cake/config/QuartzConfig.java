@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.scheduling.quartz.SpringBeanJobFactory;
-
+import com.mysql.cj.jdbc.MysqlDataSource;
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.util.Properties;
@@ -38,6 +38,12 @@ public class QuartzConfig {
     public Scheduler scheduler() throws Exception {
         SchedulerFactoryBean schedulerFactoryBean = new SchedulerFactoryBean();
         schedulerFactoryBean.setOverwriteExistingJobs(true);
+        System.out.println("-------------dataSource-------------");
+        MysqlDataSource mysqlDataSource = (MysqlDataSource) dataSource;
+        System.out.println(mysqlDataSource.getUrl());
+        System.out.println(mysqlDataSource.getUser());
+        System.out.println(mysqlDataSource.getPassword());
+
         schedulerFactoryBean.setDataSource(dataSource);
         schedulerFactoryBean.setStartupDelay(10);
         schedulerFactoryBean.setApplicationContext(applicationContext);
