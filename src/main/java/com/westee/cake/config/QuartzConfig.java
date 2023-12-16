@@ -65,13 +65,6 @@ public class QuartzConfig {
         properties.setProperty("org.quartz.jobStore.driverDelegateClass", "org.quartz.impl.jdbcjobstore.StdJDBCDelegate");
         properties.setProperty("org.quartz.jobStore.tablePrefix", "QRTZ_");
 
-        // Datasource
-        properties.setProperty("org.quartz.jobStore.dataSource", "love");
-        properties.setProperty("org.quartz.dataSource.love.driver", "com.mysql.cj.jdbc.Driver");
-        properties.setProperty("org.quartz.dataSource.love.user", "root");
-        properties.setProperty("org.quartz.dataSource.love.password", "root");
-        properties.setProperty("org.quartz.dataSource.love.URL", "jdbc:mysql://172.20.0.3:3310/test-mysql");
-
         propertiesFactoryBean.setProperties(properties);
         return propertiesFactoryBean.getObject();
     }
