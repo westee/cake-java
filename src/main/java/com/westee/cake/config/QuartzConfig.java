@@ -15,6 +15,10 @@ import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.scheduling.quartz.SpringBeanJobFactory;
 import javax.sql.DataSource;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Properties;
 
 @Configuration
@@ -43,6 +47,7 @@ public class QuartzConfig {
         System.out.println(source.getPassword());
         System.out.println(source.getUsername());
         System.out.println(source.getJdbcUrl());
+        xxx(source);
 
         schedulerFactoryBean.setDataSource(dataSource);
         schedulerFactoryBean.setStartupDelay(10);
@@ -73,5 +78,18 @@ public class QuartzConfig {
 
         propertiesFactoryBean.setProperties(properties);
         return propertiesFactoryBean.getObject();
+    }
+
+
+    public void xxx(HikariDataSource source) {
+        try (Connection connection = source.getConnection()) {
+            DatabaseMetaData metadata = connection.getMetaData();
+            ResultSet resultSet = metadata.getTables(null, null, "%", null);
+            while (resultSet.next()) {
+                System.out.println(resultSet.getString(3));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }
