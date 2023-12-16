@@ -3,7 +3,6 @@ package com.westee.cake.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.westee.cake.CakeApplication;
 import com.westee.cake.entity.LoginResponse;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,10 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @SpringBootTest(classes = CakeApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {"spring.config.location=classpath:test-application.properties"})
 public class AuthIntegrationTest extends AbstractIntegrationTest {
-
-    @BeforeEach
-    public void setup() {
-    }
 
     @Test
     public void passwordLoginTest() throws JsonProcessingException {
