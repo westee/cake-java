@@ -1,6 +1,7 @@
 package com.westee.cake.config;
 
 import com.westee.cake.service.OrderDeliveryScheduler;
+import com.zaxxer.hikari.HikariDataSource;
 import lombok.RequiredArgsConstructor;
 import org.quartz.Scheduler;
 import org.quartz.spi.JobFactory;
@@ -12,7 +13,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.scheduling.quartz.SpringBeanJobFactory;
-import com.mysql.cj.jdbc.MysqlDataSource;
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.util.Properties;
@@ -39,10 +39,10 @@ public class QuartzConfig {
         SchedulerFactoryBean schedulerFactoryBean = new SchedulerFactoryBean();
         schedulerFactoryBean.setOverwriteExistingJobs(true);
         System.out.println("-------------dataSource-------------");
-        MysqlDataSource mysqlDataSource = (MysqlDataSource) dataSource;
-        System.out.println(mysqlDataSource.getUrl());
-        System.out.println(mysqlDataSource.getUser());
-        System.out.println(mysqlDataSource.getPassword());
+        HikariDataSource source = (HikariDataSource) dataSource;
+        System.out.println(source.getPassword());
+        System.out.println(source.getUsername());
+        System.out.println(source.getJdbcUrl());
 
         schedulerFactoryBean.setDataSource(dataSource);
         schedulerFactoryBean.setStartupDelay(10);
