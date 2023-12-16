@@ -416,18 +416,18 @@
                             <password>root</password>
                         </configuration>
                     </execution>
-                    <execution>
-                        <id>clean-database</id>
-                        <phase>post-integration-test</phase>
-                        <goals>
-                            <goal>clean</goal>
-                        </goals>
-                        <configuration>
-                            <url>jdbc:mysql://172.20.0.3:3310/test-cake?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
-                            <user>root</user>
-                            <password>root</password>
-                        </configuration>
-                    </execution>
+<!--                    <execution>-->
+<!--                        <id>clean-database</id>-->
+<!--                        <phase>post-integration-test</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>clean</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <url>jdbc:mysql://172.20.0.3:3310/test-cake?useSSL=false&amp;allowPublicKeyRetrieval=true</url>-->
+<!--                            <user>root</user>-->
+<!--                            <password>root</password>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
                 </executions>
             </plugin>
 
