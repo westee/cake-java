@@ -405,7 +405,7 @@
                 <executions>
                     <execution>
                         <id>test-database-setup</id>
-                        <phase>integration-test</phase>
+                        <phase>pre-integration-test</phase>
                         <goals>
                             <goal>clean</goal>
                             <goal>migrate</goal>
