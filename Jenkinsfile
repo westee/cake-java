@@ -1,33 +1,43 @@
-pipeline {
-    agent any
-    stages {
+String buildNumber = env.BUILD_NUMBER;
+String timestamp = new Date().format('yyyyMMddHHmmss');
+String projectName = env.JOB_NAME.split(/\//)[0];
 
-        stage('# Build') {
-            steps {
-                // Run Maven on a Unix agent.
-                sh "chmod +x ./mvnw &&./mvnw -Dmaven.test.failure.ignore=true clean verify"
-            }
+String version = "${buildNumber}-${timestamp}-${projectName}";
 
-            post {
-                // If Maven was able to run the tests, even if some of the test
-                // failed, record the test results and archive the jar file.
-                success {
-                    junit '**/target/surefire-reports/TEST-*.xml'
-                    archiveArtifacts 'target/*.jar'
-                }
-            }
-        }
+node {
+    checkout scm;
 
-        stage('发布') {
-            steps {
-                echo "发布中"
-            }
-
-            post {
-                success {
-                    echo "发布成功"
-                }
-            }
-        }
+    if(params.BuildType=='Rollback') {
+        return rollback()
+    } else if(params.BuildType=='Normal'){
+        return normalCIBuild(version)
+    } else {
+        setScmPollStrategyAndBuildTypes(['Normal', 'Rollback']);
     }
+}
+
+def setScmPollStrategyAndBuildTypes(List buildTypes) {
+    def propertiesArray = [
+            parameters([choice(choices: buildTypes.join('\n'), description: '', name: 'BuildType')]),
+            pipelineTriggers([[$class: "SCMTrigger", scmpoll_spec: "* * * * *"]])
+    ];
+    properties(propertiesArray);
+}
+
+def normalCIBuild(String version) {
+    stage 'test & package'
+
+    sh('./mvnw clean package')
+
+    deployVersion(version)
+}
+
+def deployVersion(String version) {
+    println 'do rollback'
+    echo version
+    // sh "链接服务器使用docker发版"
+}
+
+def rollback() {
+    println 'do rollback'
 }
