@@ -1,7 +1,6 @@
 String buildNumber = env.BUILD_NUMBER;
 String timestamp = new Date().format('yyyyMMddHHmmss');
 String projectName = env.JOB_NAME.split(/\//)[0];
-String projectName = env.JOB_NAME.split(/\//)[0];
 
 def userInput = System.console().readLine('Enter your input: ')
 println "You entered: $userInput"
