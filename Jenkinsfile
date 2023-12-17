@@ -1,6 +1,10 @@
 String buildNumber = env.BUILD_NUMBER;
 String timestamp = new Date().format('yyyyMMddHHmmss');
 String projectName = env.JOB_NAME.split(/\//)[0];
+String projectName = env.JOB_NAME.split(/\//)[0];
+
+def userInput = System.console().readLine('Enter your input: ')
+println "You entered: $userInput"
 
 String version = "${buildNumber}-${timestamp}-${projectName}";
 
@@ -27,7 +31,7 @@ def setScmPollStrategyAndBuildTypes(List buildTypes) {
 def normalCIBuild(String version) {
     stage 'test & package'
 
-    sh('./mvnw clean package')
+    sh('chmod +x ./mvnw && ./mvnw clean package')
 
     deployVersion(version)
 }
