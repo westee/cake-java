@@ -2,8 +2,18 @@ String buildNumber = env.BUILD_NUMBER;
 String timestamp = new Date().format('yyyyMMddHHmmss');
 String projectName = env.JOB_NAME.split(/\//)[0];
 
-def userInput = System.console().readLine('Enter your input: ')
-println "You entered: $userInput"
+def userInput = input(
+    id: 'userInput', message: 'Enter path of test reports:?',
+    parameters: [
+        string(defaultValue: 'None',
+        description: 'Path of config file',
+        name: 'Config'),
+        string(defaultValue: 'None',
+        description: 'Test Info file',
+        name: 'Test'),
+    ])
+echo 'userInput.Config'
+echo userInput.Config
 
 String version = "${buildNumber}-${timestamp}-${projectName}";
 
@@ -44,3 +54,4 @@ def deployVersion(String version) {
 def rollback() {
     println 'do rollback'
 }
+
