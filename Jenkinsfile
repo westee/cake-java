@@ -39,21 +39,23 @@ def normalCIBuild(String version) {
 
     sh('chmod +x ./mvnw && ./mvnw clean package')
 
-    stage('docker build')
+    stage('docker build') {
+        def inputAuthValue = getInputAuth()
 
-    def inputAuthValue = getInputAuth()
+        echo "before docker login"
+        echo "input host is ${userInputRegistryInfo.host}"
+        sh("docker login ${userInputRegistryInfo.host} -u ${inputAuthValue.username} -p {inputAuthValue.password}")
 
-    sh("docker login ${userInputRegistryInfo.host} -u ${inputAuthValue.username} -p {inputAuthValue.password}")
+        sh("docker build . -t ${userInputRegistryInfo.host}/${userInputRegistryInfo.dockerImage}:${version}")
 
-    sh("docker build . -t ${userInputRegistryInfo.host}/${userInputRegistryInfo.dockerImage}:${version}")
+        sh("docker push ${userInputRegistryInfo.host}/${userInputRegistryInfo.dockerImage}:${version}")
 
-    sh("docker push ${userInputRegistryInfo.host}/${userInputRegistryInfo.dockerImage}:${version}")
+        stage('deploy')
 
-    stage('deploy')
+        input 'deploy?'
 
-    input 'deploy?'
-
-    deployVersion(version)
+        deployVersion(version)
+    }
 }
 
 def deployVersion(String version) {
