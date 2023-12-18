@@ -10,6 +10,7 @@ def userInputRegistryInfo = input(
         string(description: 'dockerImage of docker registry',
         name: 'dockerImage')
     ])
+echo 'input host is ${userInputRegistryInfo.host}'
 
 String version = "${buildNumber}-${timestamp}-${projectName}";
 
@@ -59,7 +60,7 @@ def deployVersion(String version) {
     println 'do rollback'
     echo version
     // 链接服务器使用docker发版
-    sh "ssh root@${userInputRegistryInfo.host.split(':')[0]} 'docker rm -f xxxx && docker run --name xxxx -d -p 8888:8080 ${userInputRegistryInfo.host}/${userInputRegistryInfo.dockerImage}:${version}'"
+    sh "ssh root@${userInputRegistryInfo.host.split(':')[0]} 'docker rm -f containerName && docker run --name containerName -d -p 8888:8080 ${userInputRegistryInfo.host}/${userInputRegistryInfo.dockerImage}:${version}'"
 }
 
 def rollback() {
@@ -88,7 +89,7 @@ def rollback() {
 
 def getInputAuth() {
     def getInputAuth = input(
-       id: 'getInputAuth', message: 'Enter path of test reports:?',
+       id: 'getInputAuth', message: 'Enter username and password:?',
        parameters: [
           string(description: 'username of auth',
           name: 'username', trim: true),
