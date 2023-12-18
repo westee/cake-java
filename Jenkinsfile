@@ -12,6 +12,9 @@ def userInputRegistryInfo = input(
     ])
 echo "input host is ${userInputRegistryInfo.host}"
 
+String host = userInputRegistryInfo.host
+String dockerImage = userInputRegistryInfo.dockerImage
+
 String version = "${buildNumber}-${timestamp}-${projectName}";
 
 node {
@@ -43,7 +46,8 @@ def normalCIBuild(String version) {
         def inputAuthValue = getInputAuth()
 
         echo "before docker login"
-        echo "input host is ${userInputRegistryInfo.host}"
+        echo "input host is " + host;
+        echo "input host is ${host}"
         sh("docker login ${userInputRegistryInfo.host} -u ${inputAuthValue.username} -p {inputAuthValue.password}")
 
         sh("docker build . -t ${userInputRegistryInfo.host}/${userInputRegistryInfo.dockerImage}:${version}")
