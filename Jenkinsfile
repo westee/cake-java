@@ -10,12 +10,9 @@ userInputRegistryInfo = input(
         string(description: 'dockerImage of docker registry',
         name: 'dockerImage')
     ])
-echo "input host is ${userInputRegistryInfo.host}"
 
 host = userInputRegistryInfo.host
-String dockerImage = userInputRegistryInfo.dockerImage
-echo "host is";
-echo host;
+dockerImage = userInputRegistryInfo.dockerImage
 
 String version = "${buildNumber}-${timestamp}-${projectName}";
 
@@ -40,21 +37,18 @@ def setScmPollStrategyAndBuildTypes(List buildTypes) {
 }
 
 def normalCIBuild(String version) {
-    stage 'test & package'
-
-    sh('chmod +x ./mvnw && ./mvnw clean package')
+    stage ('test & package') {
+        sh('chmod +x ./mvnw && ./mvnw clean package')
+    }
 
     stage('docker build') {
         def inputAuthValue = getInputAuth()
 
-        echo "before docker login"
-        echo "input host is " + host;
-        echo "input host is ${host}"
-        sh("docker login ${userInputRegistryInfo.host} -u ${inputAuthValue.username} -p {inputAuthValue.password}")
+        sh("docker login ${host} -u ${inputAuthValue.username} -p ${inputAuthValue.password}")
 
-        sh("docker build . -t ${userInputRegistryInfo.host}/${userInputRegistryInfo.dockerImage}:${version}")
+        sh("docker build . -t ${host}/${dockerImage}:${version}")
 
-        sh("docker push ${userInputRegistryInfo.host}/${userInputRegistryInfo.dockerImage}:${version}")
+        sh("docker push ${host}/${dockerImage}:${version}")
 
         stage('deploy')
 
@@ -65,16 +59,14 @@ def normalCIBuild(String version) {
 }
 
 def deployVersion(String version) {
-    println 'do rollback'
-    echo version
     // 链接服务器使用docker发版
-    sh "ssh root@${userInputRegistryInfo.host.split(':')[0]} 'docker rm -f containerName && docker run --name containerName -d -p 8888:8080 ${userInputRegistryInfo.host}/${userInputRegistryInfo.dockerImage}:${version}'"
+    sh "ssh root@${host.split(':')[0]} 'docker rm -f containerName && docker run --name containerName -d -p 8888:8080 ${host}/${dockerImage}:${version}'"
 }
 
 def rollback() {
     println 'do rollback'
-    def dockerRegistryHost = userInputRegistryInfo.host;
-    def getAllTagsUri = "/v2/${userInputRegistryInfo.dockerImage}/tags/list";
+    def dockerRegistryHost = host;
+    def getAllTagsUri = "/v2/${dockerImage}/tags/list";
 
     def responseJson = new URL("${dockerRegistryHost}${getAllTagsUri}")
        .getText(requestProperties: ['Content-Type': "application/json"]);
