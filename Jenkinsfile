@@ -43,7 +43,7 @@ def normalCIBuild(String version) {
 
     stage('docker build') {
         def inputAuthValue = getInputAuth()
-        echo inputAuthValue
+        echo inputAuthValue.password
 
         sh("docker login ${host} -u ${inputAuthValue.username} -p ${inputAuthValue.password}")
 
