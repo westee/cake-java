@@ -95,7 +95,7 @@ def getInputAuth() {
           string(description: 'username of auth',
           name: 'username', trim: true),
           string(description: 'password of auth',
-          name: 'password ', trim: true )
+          name: 'password', trim: true )
        ])
     return inputAuth
 }
