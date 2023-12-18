@@ -2,7 +2,7 @@ String buildNumber = env.BUILD_NUMBER;
 String timestamp = new Date().format('yyyyMMddHHmmss');
 String projectName = env.JOB_NAME.split(/\//)[0];
 
-def userInputRegistryInfo = input(
+userInputRegistryInfo = input(
     id: 'userInputRegistryInfo', message: 'Enter path of test reports:?',
     parameters: [
         string(description: 'Host of docker registry',
@@ -12,8 +12,10 @@ def userInputRegistryInfo = input(
     ])
 echo "input host is ${userInputRegistryInfo.host}"
 
-String host = userInputRegistryInfo.host
+host = userInputRegistryInfo.host
 String dockerImage = userInputRegistryInfo.dockerImage
+echo "host is";
+echo host;
 
 String version = "${buildNumber}-${timestamp}-${projectName}";
 
