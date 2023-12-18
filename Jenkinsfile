@@ -10,7 +10,7 @@ def userInputRegistryInfo = input(
         string(description: 'dockerImage of docker registry',
         name: 'dockerImage')
     ])
-echo 'input host is ${userInputRegistryInfo.host}'
+echo "input host is ${userInputRegistryInfo.host}"
 
 String version = "${buildNumber}-${timestamp}-${projectName}";
 
