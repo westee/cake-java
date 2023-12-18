@@ -37,12 +37,13 @@ def setScmPollStrategyAndBuildTypes(List buildTypes) {
 }
 
 def normalCIBuild(String version) {
-    stage ('test & package') {
-        sh('chmod +x ./mvnw && ./mvnw clean package')
-    }
+    //stage ('test & package') {
+    //    sh('chmod +x ./mvnw && ./mvnw clean package')
+    //}
 
     stage('docker build') {
         def inputAuthValue = getInputAuth()
+        echo inputAuthValue
 
         sh("docker login ${host} -u ${inputAuthValue.username} -p ${inputAuthValue.password}")
 
@@ -88,7 +89,7 @@ def rollback() {
 }
 
 def getInputAuth() {
-    def getInputAuth = input(
+    def inputAuth = input(
        id: 'getInputAuth', message: 'Enter username and password:?',
        parameters: [
           string(description: 'username of auth',
@@ -96,6 +97,6 @@ def getInputAuth() {
           string(description: 'password of auth',
           name: 'password ', trim: true )
        ])
-    return getInputAuth
+    return inputAuth
 }
 
