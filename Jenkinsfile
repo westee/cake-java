@@ -79,9 +79,6 @@ def rollback() {
 
     def responseJson = sh(script: "curl -u ${inputAuthValue.username}:${inputAuthValue.password} --url ${host}${getAllTagsUri}", returnStdout: true)
 
-    println("responseJson")
-    println(responseJson.name)
-
     // {name:xxx,tags:[tag1,tag2,...]}
     //Map response = new groovy.json.JsonSlurperClassic().parseText(responseJson) as Map;
     def xxmap = readJSON text: responseJson
