@@ -33,7 +33,8 @@ node {
 def setScmPollStrategyAndBuildTypes(List buildTypes) {
     def propertiesArray = [
             parameters([choice(choices: buildTypes.join('\n'), description: '', name: 'BuildType')]),
-            pipelineTriggers([[$class: "SCMTrigger", scmpoll_spec: "* * * * *"]])
+            pipelineTriggers([[$class: "SCMTrigger", scmpoll_spec: "* * * * *"]]),
+            disableConcurrentBuilds()
     ];
     properties(propertiesArray);
 }
@@ -70,6 +71,9 @@ def rollback() {
     println 'do rollback'
     def getAllTagsUri = "/v2/${dockerImage}/tags/list";
 
+    inputAuthValue = getInputAuth()
+    sh("docker login ${host} -u ${inputAuthValue.username} -p ${inputAuthValue.password}")
+
     def responseJson = new URL("http://${host}${getAllTagsUri}")
        .getText(requestProperties: ['Content-Type': "application/json"]);
 
@@ -77,8 +81,10 @@ def rollback() {
 
     // {name:xxx,tags:[tag1,tag2,...]}
     Map response = new groovy.json.JsonSlurperClassic().parseText(responseJson) as Map;
-
-    def versionsStr = response.tags.join('\n');
+    def xxmap = readJSON text: responseJson
+    echo "xxmap["name"]"
+    echo xxmap["name"]
+    def versionsStr = xxmap.tags.join('\n');
 
     def rollbackVersion = input(
         message: 'Select a version to rollback',
