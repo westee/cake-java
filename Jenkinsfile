@@ -73,7 +73,7 @@ def rollback() {
 
     inputAuthValue = getInputAuth()
     sh("docker login ${host} -u ${inputAuthValue.username} -p ${inputAuthValue.password}")
-
+    println "http://${host}${getAllTagsUri}"
     def responseJson = new URL("http://${host}${getAllTagsUri}")
        .getText(requestProperties: ['Content-Type': "application/json"]);
 
