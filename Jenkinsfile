@@ -35,14 +35,14 @@ def setScmPollStrategyAndBuildTypes(List buildTypes) {
     ];
     properties(propertiesArray);
 }
-
+@Field def inputAuthValue
 def normalCIBuild(String version) {
     //stage ('test & package') {
     //    sh('chmod +x ./mvnw && ./mvnw clean package')
     //}
 
     stage('docker build') {
-        def inputAuthValue = getInputAuth()
+        inputAuthValue = getInputAuth()
         echo inputAuthValue.password
 
         sh("docker login ${host} -u ${inputAuthValue.username} -p ${inputAuthValue.password}")
