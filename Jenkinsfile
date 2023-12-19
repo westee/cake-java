@@ -61,8 +61,7 @@ def normalCIBuild(String version) {
 
 def deployVersion(String version) {
     // 链接服务器使用docker发版
-    sh """ssh -o StrictHostKeyChecking=no root@${host.split(':')[0]} 'docker login ${host} -u ${inputAuthValue.username} -p ${inputAuthValue.password} &&
-     docker rm -f container-name && docker run --name container-name -d -p 8081:8080 ${host}/${dockerImage}:${version}'"""
+    sh "ssh -o StrictHostKeyChecking=no root@${host.split(':')[0]} 'docker login ${host} -u ${inputAuthValue.username} -p ${inputAuthValue.password} && docker rm -f container-name && docker run --name container-name -d -p 8081:8080 ${host}/${dockerImage}:${version}'"
 }
 
 def rollback() {
