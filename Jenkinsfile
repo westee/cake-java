@@ -77,7 +77,7 @@ def rollback() {
     //def responseJson = new URL("http://${host}${getAllTagsUri}")
     //   .getText(requestProperties: ['Content-Type': "application/json"]);
 
-    def responseJson = sh script: """curl -u ${inputAuthValue.username}:${inputAuthValue.password} --url ${host}${getAllTagsUri} """, returnOutput: true
+    def responseJson = sh(script: "curl -u ${inputAuthValue.username}:${inputAuthValue.password} --url ${host}${getAllTagsUri}", returnOutput: true)
 
     println("responseJson")
     println(responseJson)
