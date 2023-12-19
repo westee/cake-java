@@ -68,10 +68,9 @@ def deployVersion(String version) {
 
 def rollback() {
     println 'do rollback'
-    def dockerRegistryHost = host;
     def getAllTagsUri = "/v2/${dockerImage}/tags/list";
 
-    def responseJson = new URL("${dockerRegistryHost}${getAllTagsUri}")
+    def responseJson = new URL("http://${host}${getAllTagsUri}")
        .getText(requestProperties: ['Content-Type': "application/json"]);
 
     println(responseJson)
