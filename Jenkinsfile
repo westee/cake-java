@@ -1,3 +1,5 @@
+import groovy.transform.Field
+
 String buildNumber = env.BUILD_NUMBER;
 String timestamp = new Date().format('yyyyMMddHHmmss');
 String projectName = env.JOB_NAME.split(/\//)[0];
