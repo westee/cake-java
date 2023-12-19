@@ -38,11 +38,12 @@ def setScmPollStrategyAndBuildTypes(List buildTypes) {
     ];
     properties(propertiesArray);
 }
+
 @Field def inputAuthValue
 def normalCIBuild(String version) {
-    //stage ('test & package') {
-    //    sh('chmod +x ./mvnw && ./mvnw clean package')
-    //}
+    stage ('test & package') {
+        sh('chmod +x ./mvnw && ./mvnw clean package')
+    }
 
     stage('docker build') {
         inputAuthValue = getInputAuth()
@@ -53,47 +54,44 @@ def normalCIBuild(String version) {
         sh("docker build . -t ${host}/${dockerImage}:${version}")
 
         sh("docker push ${host}/${dockerImage}:${version}")
+    }
 
-        stage('deploy')
-
+    stage('deploy') {
         input 'deploy?'
-
         deployVersion(version)
     }
 }
 
 def deployVersion(String version) {
     // 链接服务器使用docker发版
-    sh "ssh -o StrictHostKeyChecking=no root@${host.split(':')[0]} 'docker login ${host} -u ${inputAuthValue.username} -p ${inputAuthValue.password} && docker rm -f container-name && docker run --name container-name -d -p 8081:8080 ${host}/${dockerImage}:${version}'"
+    sh """ssh -o StrictHostKeyChecking=no root@${host.split(':')[0]} 'docker login ${host} -u ${inputAuthValue.username} -p ${inputAuthValue.password} && \
+    docker rm -f container-name && \
+    docker run --name container-name -d -p 8081:8080 ${host}/${dockerImage}:${version}'"""
 }
 
 def rollback() {
-    println 'do rollback'
-    def getAllTagsUri = "/v2/${dockerImage}/tags/list";
+    stage('do rollback') {
 
-    inputAuthValue = getInputAuth()
-    sh("docker login ${host} -u ${inputAuthValue.username} -p ${inputAuthValue.password}")
-    println "http://${host}${getAllTagsUri}"
-    //def responseJson = new URL("http://${host}${getAllTagsUri}")
-    //   .getText(requestProperties: ['Content-Type': "application/json"]);
+        def getAllTagsUri = "/v2/${dockerImage}/tags/list";
 
-    def responseJson = sh(script: "curl -u ${inputAuthValue.username}:${inputAuthValue.password} --url ${host}${getAllTagsUri}", returnStdout: true)
+        inputAuthValue = getInputAuth()
+        sh("docker login ${host} -u ${inputAuthValue.username} -p ${inputAuthValue.password}")
+        println "http://${host}${getAllTagsUri}"
 
-    // {name:xxx,tags:[tag1,tag2,...]}
-    //Map response = new groovy.json.JsonSlurperClassic().parseText(responseJson) as Map;
-    def xxmap = readJSON text: responseJson
-    echo "xxmap"
-    echo xxmap.name
-    echo xxmap["name"]
-    def versionsStr = xxmap.tags.join('\n');
+        def responseJson = sh(script: "curl -u ${inputAuthValue.username}:${inputAuthValue.password} --url ${host}${getAllTagsUri}", returnStdout: true)
 
-    def rollbackVersion = input(
-        message: 'Select a version to rollback',
-        ok: 'OK',
-        parameters: [choice(choices: versionsStr, description: 'version', name: 'version')])
+        // {name:xxx,tags:[tag1,tag2,...]}
+        def response = readJSON text: responseJson
+        def versionsStr = response.tags.join('\n');
 
-    println rollbackVersion
-    deployVersion(rollbackVersion)
+        def rollbackVersion = input(
+            message: 'Select a version to rollback',
+            ok: 'OK',
+            parameters: [choice(choices: versionsStr, description: 'version', name: 'version')])
+
+        println rollbackVersion
+        deployVersion(rollbackVersion)
+    }
 }
 
 def getInputAuth() {
